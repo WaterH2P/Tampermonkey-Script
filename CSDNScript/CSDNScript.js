@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        H2P: CSDN、掘金界面清爽
 // @namespace   http://tampermonkey.net/
-// @version     0.0.7
+// @version     0.0.8
 // @icon        https://csdnimg.cn/cdn/content-toolbar/csdn-logo.png?v=20200416.1
 // @description CSDN、掘金界面清爽
 // @author      H2P
@@ -13,7 +13,7 @@
 // @note        2020.07.20-V0.0.01      搜索界面和博客界面元素隐藏
 // @note        2020.07.20-V0.0.02      点赞栏位置固定
 // @note        2020.07.20-V0.0.03-05   搜索、分类专栏位置调整
-// @note        2020.07.20-V0.0.06-07   清爽掘金部分网页
+// @note        2020.07.20-V0.0.06-08   清爽掘金部分网页
 // ==/UserScript==
 
 (function() {
@@ -124,7 +124,7 @@
   } else if (isJueJin) {
     // 导航栏
     eleStyle.innerHTML += `
-      .main-header { transform: none!important; }
+      .nav-banner { width: 100%!important; }
     `;
     // 搜索框大小
     eleStyle.innerHTML += `
