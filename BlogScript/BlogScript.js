@@ -78,7 +78,7 @@
       eleStyle.innerHTML += `
         .recommend-right_aside, #asideNewComments,
         #asideHotArticle { display: none!important; }
-        .more-toolbox .left-toolbox { position: relative!important; }
+        .more-toolbox .left-toolbox { position: relative!important; left: 0!important; }
         aside.blog_container_aside { position: fixed!important; top: auto!important; bottom: auto!important; left: auto!important; z-index: 0!important; }
       `;
       // 分类专栏
