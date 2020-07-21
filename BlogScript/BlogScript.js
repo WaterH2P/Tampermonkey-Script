@@ -1,15 +1,17 @@
 // ==UserScript==
-// @name        H2P: CSDN、掘金界面清爽
+// @name        H2P: 博客界面清爽
 // @namespace   http://tampermonkey.net/
 // @version     0.0.8
 // @icon        https://csdnimg.cn/cdn/content-toolbar/csdn-logo.png?v=20200416.1
-// @description CSDN、掘金界面清爽
+// @description CSDN、掘金、博客园界面清爽
 // @author      H2P
 // @compatible  chrome
 // @match       *://www.csdn.net*
 // @match       *://so.csdn.net/so/search/s.do?*
 // @match       *://blog.csdn.net/*
 // @match       *://juejin.im/*
+// @match       *://www.cnblogs.com/*
+// @match       *://segmentfault.com/*
 // @note        2020.07.20-V0.0.01      搜索界面和博客界面元素隐藏
 // @note        2020.07.20-V0.0.02      点赞栏位置固定
 // @note        2020.07.20-V0.0.03-05   搜索、分类专栏位置调整
@@ -29,7 +31,12 @@
   const isCSDNSearch  = window.location.href.includes('/so.csdn.net/so/search/');
   const isCSDNBlog    = window.location.href.includes('/blog.csdn.net/');
   
-  const isJueJin        = window.location.href.includes('juejin');
+  const isJueJin      = window.location.href.includes('juejin');
+  const isJueJinPost  = window.location.href.includes('juejin.im/post/');
+
+  const isCNBlog      = window.location.href.includes('cnblogs');
+
+  const isSegFault    = window.location.href.includes('segmentfault');
 
   let eleStyle = document.createElement('style');
 
@@ -169,6 +176,35 @@
     // 搜索 - 文章、标签、用户
     eleStyle.innerHTML += `
       .entry-list, .tag-list, .user-list { max-width: none!important; }
+    `;
+    if (isJueJinPost) {
+      eleStyle.innerHTML += `
+        .main-header, .main-header.visible { transform: none!important; }
+      `;
+    }
+  } else if (isCNBlog) {
+    // 公告、右侧二维码、日历、
+    eleStyle.innerHTML += `
+      #sidebar_news > h3,
+      #blog-news > img, #blog-news > p, #blog-calendar { display: none!important; }
+    `;
+    // 最新评论、评论排行榜、阅读排行榜、推荐排行榜
+    eleStyle.innerHTML += `
+      #sidebar_recentcomments,
+      #sidebar_topcommentedposts,
+      #sidebar_topviewedposts,
+      #sidebar_topdiggedposts { display: none!important; }
+    `;
+    // 主体下方评论
+    eleStyle.innerHTML += `
+      #comment_form { display: none!important; }
+    `;
+  } else if (isSegFault) {
+    // 广告
+    eleStyle.innerHTML += `
+      #first-ad,
+      #first-ad + .card.border-0.d-none.d-xl-flex.mb-4,
+      span.img-wrap > img { display: none!important; }
     `;
   }
   document.head.appendChild(eleStyle);
