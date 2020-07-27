@@ -156,7 +156,7 @@
     eleStyle.innerHTML += `
       .author-block { position: fixed!important; width: 240px!important; }
       .related-entry-sidebar-block { position: fixed!important; width: 240px; top: 300px!important; }
-      .sticky-block-box { position: fixed!important; width: 240px!important; left: calc(50% + 480px + 20px);!important; }
+      .sticky-block-box { position: fixed!important; width: 240px!important; left: calc(50% + 480px + 20px)!important; }
     `;
     // 作者广告
     eleStyle.innerHTML += `
