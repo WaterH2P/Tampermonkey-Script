@@ -21,10 +21,7 @@
   let eleStyle = document.createElement('style');
 
   eleStyle.innerHTML += `
-    div.width-constraint > section:nth-child(n+2) { display: none!important; }
-  `;
-  eleStyle.innerHTML += `
-    #script-list-set, #script-language-filter { display: none!important; }
+    #user-discussions, #user-conversations, #user-script-sets-section { display: none!important; }
   `;
   document.head.appendChild(eleStyle);
   })();
