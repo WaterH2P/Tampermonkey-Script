@@ -2,8 +2,8 @@
 // @name        H2P: 博客界面清爽
 // @namespace   http://tampermonkey.net/
 // @version     0.0.8
-// @icon        https://csdnimg.cn/cdn/content-toolbar/csdn-logo.png?v=20200416.1
-// @description CSDN、掘金、博客园界面清爽
+// @icon        https://avatars1.githubusercontent.com/u/18672358?s=60&v=4
+// @description CSDN、掘金、博客园、思否界面清爽
 // @author      H2P
 // @compatible  chrome
 // @match       *://www.csdn.net*
