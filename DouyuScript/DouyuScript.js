@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        H2P: 斗鱼虎牙B站小工具
 // @namespace   http://tampermonkey.net/
-// @version     2.2.1
+// @version     2.2.2
 // @icon        http://www.douyutv.com/favicon.ico
 // @description 黑暗模式 / 清爽模式：斗鱼虎牙 B 站 ________ <斗鱼>：抽奖、抄袭、循环弹幕，关键词回复 ____ 批量取关、直播时长、真实人数 ____ 暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、领取鱼塘（自动寻宝）、签到、自动维持亲密度 ________ <虎牙>：抄袭、循环弹幕 ____ 暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、领取宝箱 ________ <B 站>：暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、签到、领取舰长辣条
 // @author      H2P
@@ -153,6 +153,7 @@
 // @note        2020.07.19-V2.1.12      修复虎牙最高画质暂停 BUG，修复 B 站宽屏模式BUG，优化 B 站控制板大小
 // @note        2020.07.19-V2.1.13      修复 topic 为 lol 的房间的清爽模式白屏 BUG
 // @note        2020.07.20-V2.2.01      自动发弹幕修改分为本房间和所有房间
+// @note        2020.08.01-V2.2.02      斗鱼清爽模式优化；修复虎牙 id 为字母的房间脚本加载错误的 BUG
 // ==/UserScript==
 
 (() => {
@@ -193,7 +194,7 @@
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
 // 
-//                               全局样式
+//                                                           全局样式
 // 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
 
@@ -241,7 +242,7 @@
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
 // 
-//                               黑暗模式
+//                                                            黑暗模式
 // 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
 
@@ -299,6 +300,11 @@
         }
       `;
       if (isDouyu) {
+        // 隐藏背景图片
+        eleStyle.innerHTML += `
+          .video-header { display: none!important; }
+          #bc6 { background: none!important; }
+        `;
         eleStyle.innerHTML += `
           body, div.Header-wrap, main.layout-Main, div.FishpondTreasure-v4-area { background-color: ${black.bg.deep}!important; }
         `;
@@ -1383,14 +1389,16 @@
           .PlayFishBallEnter, .HappyPlayIcon { display: none!important; }
           .PlayerToolbar-signCont { visibility: hidden; }
         `;
-        // 鱼购精选、打赏君、超级擂主、充值送鱼丸、许愿池
+        // 鱼购精选、打赏君、超级擂主、充值送鱼丸、许愿池、环游星空、弱鸡总动员
         eleStyle.innerHTML += `
           .ActivityItem[data-flag=douyugoods], .ActivityItem[data-flag=projectLiveReward],
           .ActivityItem[data-flag=''],
           .ActiviesExpanel-ExpandBtn,
           .Act202006fansTips,
           .ActConfigPay,
-          .WishPondEnter { display: none!important; }
+          .WishPondEnter,
+          .TurntableLottery,
+          .HitWeakChickenEnter { display: none!important; }
         `;
         // 礼物红包、房间等级、周的标签
         eleStyle.innerHTML += `
@@ -1562,8 +1570,13 @@
         eleStyle.innerHTML += `
           .guessGameContainer { margin-bottom: 15px; }
         `;
+        // 背景高度
+        eleStyle.innerHTML += `
+          #bc6 { height: ${window.screen.height - 68}px!important; }
+          #root > div.bc-wrapper:last-child { display: none!important; }
+        `;
         if (isDouyuTopic) {
-          if (window.location.href.includes('lolylyx_2')) {
+          if (window.location.href.includes('lolylyx')) {
             eleStyle.innerHTML += `
               div#root > div.wm-general:nth-child(4) { margin-top: 70px; }
               div#root > div.wm-general:nth-child(3),
@@ -2086,7 +2099,7 @@
   if (regNums.test($H2P('head > title').textContent)) {
     roomInfo.id = regNums.exec($H2P('head > title').textContent)[0];
   } else {
-    roomInfo.id = regNums.exec(window.location.href)[0];
+    roomInfo.id = regNums.exec(window.location.href) ? regNums.exec(window.location.href)[0] : window.location.href.split('/www.huya.com/').pop();
   }
 
   if (isDouyu) {
