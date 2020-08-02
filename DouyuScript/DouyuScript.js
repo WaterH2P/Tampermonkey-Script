@@ -17,7 +17,7 @@
 // @match       *://*.douyu.com/8*
 // @match       *://*.douyu.com/9*
 // @match       *://*.douyu.com/topic/*
-// @match       https://www.douyu.com/directory/myFollow
+// @match       *://www.douyu.com/directory/myFollow
 // @match       *://*.bilibili.com/
 // @match       *://*.bilibili.com/?*
 // @match       *://*.bilibili.com/video/*
@@ -159,31 +159,46 @@
 (() => {
   'use strict';
 
-  const $H2P = function (xpath, one = true) {
-    if (one) { return document.querySelector(xpath); }
-    else { return Array.from(document.querySelectorAll(xpath)); }
+  const $H2P  = (xpath = 'body', queryOneElement = true) => queryOneElement ? document.querySelector(xpath) : Array.from(document.querySelectorAll(xpath));
+  const $PAGE = {
+    href: window.location.href,
+  };
+  const $LS   = {
+    init: (itemKey = '', itemPre = {}) => {
+      let item = Object.assign({}, itemPre, $LS.get(itemKey));
+      for (let key in item) { if (!(key in itemPre)) { delete item[key]; } }
+      localStorage.removeItem(itemKey);
+      $LS.set(itemKey, item);
+      return item;
+    },
+    set: (itemKey = '', item = {}) => { localStorage.setItem(itemKey, JSON.stringify(item)); },
+    get: (itemKey = '') => JSON.parse(localStorage.getItem(itemKey)) || {},
+    remove: (itemKey = '') => { localStorage.removeItem(itemKey); }
+  }
+  const $INVL = {
+    clear: (INVLID) => { clearInterval(INVLID); INVLID = null; }
   }
   
-  const myKeyCode = {
+  const $KEYCODE = {
     'a': 65, 'b': 66, 'c': 67, 'd': 68, 'e': 69, 'f': 70, 'g': 71,
     'h': 72, 'i': 73, 'j': 74, 'k': 75, 'l': 76, 'm': 77, 'n': 78,
     'o': 79, 'p': 80, 'q': 81, 'r': 82, 's': 83, 't': 84,
     'u': 85, 'v': 86, 'w': 87, 'x': 88, 'y': 89, 'z': 90,
   }
 
-  const isDouyu         = window.location.href.includes('douyu.com');
-  const isDouyuTopic    = window.location.href.startsWith('https://www.douyu.com/topic/');
-  const isDouyuFollow   = window.location.href.startsWith('https://www.douyu.com/directory/myFollow');
+  const isDouyu         = $PAGE.href.includes('douyu.com');
+  const isDouyuTopic    = $PAGE.href.startsWith('https://www.douyu.com/topic/');
+  const isDouyuFollow   = $PAGE.href.startsWith('https://www.douyu.com/directory/myFollow');
     
-  const isBilibili      = window.location.href.includes('bilibili.com');
-  const isBilibiliHome  = window.location.href === 'https://www.bilibili.com' || window.location.href === 'https://www.bilibili.com/' || window.location.href.startsWith('https://www.bilibili.com/?');
-  const isBilibiliVideo = window.location.href.startsWith('https://www.bilibili.com/video/');
-  const isBilibiliAct   = window.location.href.startsWith('https://t.bilibili.com/');
-  const isBilibiliRank  = window.location.href.startsWith('https://www.bilibili.com/ranking?');
-  const isBilibiliLive  = window.location.href.startsWith('https://live.bilibili.com/');
+  const isBilibili      = $PAGE.href.includes('bilibili.com');
+  const isBilibiliHome  = $PAGE.href === 'https://www.bilibili.com' || $PAGE.href === 'https://www.bilibili.com/' || $PAGE.href.startsWith('https://www.bilibili.com/?');
+  const isBilibiliVideo = $PAGE.href.startsWith('https://www.bilibili.com/video/');
+  const isBilibiliAct   = $PAGE.href.startsWith('https://t.bilibili.com/');
+  const isBilibiliRank  = $PAGE.href.startsWith('https://www.bilibili.com/ranking?');
+  const isBilibiliLive  = $PAGE.href.startsWith('https://live.bilibili.com/');
 
-  const isHuya          = window.location.href.includes('huya.com');
-  const isHuyaFollow    = window.location.href.includes('huya.com/myfollow');
+  const isHuya          = $PAGE.href.includes('huya.com');
+  const isHuyaFollow    = $PAGE.href.includes('huya.com/myfollow');
 
 
 
@@ -210,13 +225,12 @@
     }
     .h2p-flex-main-center {
       height          : 22px;
-      margin          : 0 0 14px 0;
+      margin          : 0 0 15px 0;
       display         : flex;
       flex-flow       : row wrap;
       justify-content : center;
       align-items     : center;
     }
-    
     .h2p-flex-main-end {
       height          : 22px;
       margin          : 0 0 15px 0;
@@ -247,7 +261,7 @@
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
 
   const LSClear = 'h2p-DY-config-clear';
-  let config_clear_pre = {
+  let config_clear = $LS.init(LSClear, {
     isClearNav  : false,
     isClearInfo : false,
     isClearAside: false,
@@ -263,15 +277,7 @@
     BMBGLight   : '#363636',
     BMFontDeep  : '#a7a7a7',
     BMFontLight : '#888888',
-  };
-  let config_clear = {};
-  Object.assign(config_clear, config_clear_pre);
-  let config_clear_tmp = JSON.parse(localStorage.getItem(LSClear)) || {};
-  Object.assign(config_clear, config_clear_tmp);
-  for (let key in config_clear) { if (!(key in config_clear_pre)) { delete config_clear[key]; } }
-  localStorage.removeItem(LSClear);
-  localStorage.removeItem('h2p-config-clear');
-  localStorage.setItem(LSClear, JSON.stringify(config_clear));
+  });
   
   function blackMode () {
     console.log(`${config_clear.blackMode ? '启动' : '关闭'} : 黑暗模式`);
@@ -878,27 +884,26 @@
   if (config_clear.blackMode) { blackMode(); }
 
   const whiteBase64s = {
-        douyu: 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBzdGFuZGFsb25lPSJubyI/PjwhRE9DVFlQRSBzdmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMS4xLy9FTiIgImh0dHA6Ly93d3cudzMub3JnL0dyYXBoaWNzL1NWRy8xLjEvRFREL3N2ZzExLmR0ZCI+PHN2ZyB0PSIxNTg4OTA0NDY4Njk1IiBjbGFzcz0iaWNvbiIgdmlld0JveD0iMCAwIDEwMjQgMTAyNCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHAtaWQ9IjIxMTkiIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCI+PGRlZnM+PHN0eWxlIHR5cGU9InRleHQvY3NzIj48L3N0eWxlPjwvZGVmcz48cGF0aCBkPSJNODUzLjMzMzMzMyA2NTMuNDRMOTk0Ljc3MzMzMyA1MTIgODUzLjMzMzMzMyAzNzAuNTZWMTcwLjY2NjY2N2gtMTk5Ljg5MzMzM0w1MTIgMjkuMjI2NjY3IDM3MC41NiAxNzAuNjY2NjY3SDE3MC42NjY2Njd2MTk5Ljg5MzMzM0wyOS4yMjY2NjcgNTEyIDE3MC42NjY2NjcgNjUzLjQ0Vjg1My4zMzMzMzNoMTk5Ljg5MzMzM0w1MTIgOTk0Ljc3MzMzMyA2NTMuNDQgODUzLjMzMzMzM0g4NTMuMzMzMzMzdi0xOTkuODkzMzMzek01MTIgNzY4Yy0xNDEuNDQgMC0yNTYtMTE0LjU2LTI1Ni0yNTZzMTE0LjU2LTI1NiAyNTYtMjU2IDI1NiAxMTQuNTYgMjU2IDI1Ni0xMTQuNTYgMjU2LTI1NiAyNTZ6IiBwLWlkPSIyMTIwIiBmaWxsPSIjZmZmZmZmIj48L3BhdGg+PC9zdmc+',
-        bilibili: 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBzdGFuZGFsb25lPSJubyI/PjwhRE9DVFlQRSBzdmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMS4xLy9FTiIgImh0dHA6Ly93d3cudzMub3JnL0dyYXBoaWNzL1NWRy8xLjEvRFREL3N2ZzExLmR0ZCI+PHN2ZyB0PSIxNTg4OTA0NDY4Njk1IiBjbGFzcz0iaWNvbiIgdmlld0JveD0iMCAwIDEwMjQgMTAyNCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHAtaWQ9IjIxMTkiIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCI+PGRlZnM+PHN0eWxlIHR5cGU9InRleHQvY3NzIj48L3N0eWxlPjwvZGVmcz48cGF0aCBkPSJNODUzLjMzMzMzMyA2NTMuNDRMOTk0Ljc3MzMzMyA1MTIgODUzLjMzMzMzMyAzNzAuNTZWMTcwLjY2NjY2N2gtMTk5Ljg5MzMzM0w1MTIgMjkuMjI2NjY3IDM3MC41NiAxNzAuNjY2NjY3SDE3MC42NjY2Njd2MTk5Ljg5MzMzM0wyOS4yMjY2NjcgNTEyIDE3MC42NjY2NjcgNjUzLjQ0Vjg1My4zMzMzMzNoMTk5Ljg5MzMzM0w1MTIgOTk0Ljc3MzMzMyA2NTMuNDQgODUzLjMzMzMzM0g4NTMuMzMzMzMzdi0xOTkuODkzMzMzek01MTIgNzY4Yy0xNDEuNDQgMC0yNTYtMTE0LjU2LTI1Ni0yNTZzMTE0LjU2LTI1NiAyNTYtMjU2IDI1NiAxMTQuNTYgMjU2IDI1Ni0xMTQuNTYgMjU2LTI1NiAyNTZ6IiBwLWlkPSIyMTIwIiBmaWxsPSIjZmZmZmZmIj48L3BhdGg+PC9zdmc+',
+    douyu: 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBzdGFuZGFsb25lPSJubyI/PjwhRE9DVFlQRSBzdmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMS4xLy9FTiIgImh0dHA6Ly93d3cudzMub3JnL0dyYXBoaWNzL1NWRy8xLjEvRFREL3N2ZzExLmR0ZCI+PHN2ZyB0PSIxNTg4OTA0NDY4Njk1IiBjbGFzcz0iaWNvbiIgdmlld0JveD0iMCAwIDEwMjQgMTAyNCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHAtaWQ9IjIxMTkiIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCI+PGRlZnM+PHN0eWxlIHR5cGU9InRleHQvY3NzIj48L3N0eWxlPjwvZGVmcz48cGF0aCBkPSJNODUzLjMzMzMzMyA2NTMuNDRMOTk0Ljc3MzMzMyA1MTIgODUzLjMzMzMzMyAzNzAuNTZWMTcwLjY2NjY2N2gtMTk5Ljg5MzMzM0w1MTIgMjkuMjI2NjY3IDM3MC41NiAxNzAuNjY2NjY3SDE3MC42NjY2Njd2MTk5Ljg5MzMzM0wyOS4yMjY2NjcgNTEyIDE3MC42NjY2NjcgNjUzLjQ0Vjg1My4zMzMzMzNoMTk5Ljg5MzMzM0w1MTIgOTk0Ljc3MzMzMyA2NTMuNDQgODUzLjMzMzMzM0g4NTMuMzMzMzMzdi0xOTkuODkzMzMzek01MTIgNzY4Yy0xNDEuNDQgMC0yNTYtMTE0LjU2LTI1Ni0yNTZzMTE0LjU2LTI1NiAyNTYtMjU2IDI1NiAxMTQuNTYgMjU2IDI1Ni0xMTQuNTYgMjU2LTI1NiAyNTZ6IiBwLWlkPSIyMTIwIiBmaWxsPSIjZmZmZmZmIj48L3BhdGg+PC9zdmc+',
+    bilibili: 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBzdGFuZGFsb25lPSJubyI/PjwhRE9DVFlQRSBzdmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMS4xLy9FTiIgImh0dHA6Ly93d3cudzMub3JnL0dyYXBoaWNzL1NWRy8xLjEvRFREL3N2ZzExLmR0ZCI+PHN2ZyB0PSIxNTg4OTA0NDY4Njk1IiBjbGFzcz0iaWNvbiIgdmlld0JveD0iMCAwIDEwMjQgMTAyNCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHAtaWQ9IjIxMTkiIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCI+PGRlZnM+PHN0eWxlIHR5cGU9InRleHQvY3NzIj48L3N0eWxlPjwvZGVmcz48cGF0aCBkPSJNODUzLjMzMzMzMyA2NTMuNDRMOTk0Ljc3MzMzMyA1MTIgODUzLjMzMzMzMyAzNzAuNTZWMTcwLjY2NjY2N2gtMTk5Ljg5MzMzM0w1MTIgMjkuMjI2NjY3IDM3MC41NiAxNzAuNjY2NjY3SDE3MC42NjY2Njd2MTk5Ljg5MzMzM0wyOS4yMjY2NjcgNTEyIDE3MC42NjY2NjcgNjUzLjQ0Vjg1My4zMzMzMzNoMTk5Ljg5MzMzM0w1MTIgOTk0Ljc3MzMzMyA2NTMuNDQgODUzLjMzMzMzM0g4NTMuMzMzMzMzdi0xOTkuODkzMzMzek01MTIgNzY4Yy0xNDEuNDQgMC0yNTYtMTE0LjU2LTI1Ni0yNTZzMTE0LjU2LTI1NiAyNTYtMjU2IDI1NiAxMTQuNTYgMjU2IDI1Ni0xMTQuNTYgMjU2LTI1NiAyNTZ6IiBwLWlkPSIyMTIwIiBmaWxsPSIjZmZmZmZmIj48L3BhdGg+PC9zdmc+',
     bilibiliVideo: 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBzdGFuZGFsb25lPSJubyI/PjwhRE9DVFlQRSBzdmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMS4xLy9FTiIgImh0dHA6Ly93d3cudzMub3JnL0dyYXBoaWNzL1NWRy8xLjEvRFREL3N2ZzExLmR0ZCI+PHN2ZyB0PSIxNTg4OTA0NDY4Njk1IiBjbGFzcz0iaWNvbiIgdmlld0JveD0iMCAwIDEwMjQgMTAyNCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHAtaWQ9IjIxMTkiIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCI+PGRlZnM+PHN0eWxlIHR5cGU9InRleHQvY3NzIj48L3N0eWxlPjwvZGVmcz48cGF0aCBkPSJNODUzLjMzMzMzMyA2NTMuNDRMOTk0Ljc3MzMzMyA1MTIgODUzLjMzMzMzMyAzNzAuNTZWMTcwLjY2NjY2N2gtMTk5Ljg5MzMzM0w1MTIgMjkuMjI2NjY3IDM3MC41NiAxNzAuNjY2NjY3SDE3MC42NjY2Njd2MTk5Ljg5MzMzM0wyOS4yMjY2NjcgNTEyIDE3MC42NjY2NjcgNjUzLjQ0Vjg1My4zMzMzMzNoMTk5Ljg5MzMzM0w1MTIgOTk0Ljc3MzMzMyA2NTMuNDQgODUzLjMzMzMzM0g4NTMuMzMzMzMzdi0xOTkuODkzMzMzek01MTIgNzY4Yy0xNDEuNDQgMC0yNTYtMTE0LjU2LTI1Ni0yNTZzMTE0LjU2LTI1NiAyNTYtMjU2IDI1NiAxMTQuNTYgMjU2IDI1Ni0xMTQuNTYgMjU2LTI1NiAyNTZ6IiBwLWlkPSIyMTIwIiBmaWxsPSIjMjEyMTIxIj48L3BhdGg+PC9zdmc+',
     finally: 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBzdGFuZGFsb25lPSJubyI/PjwhRE9DVFlQRSBzdmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMS4xLy9FTiIgImh0dHA6Ly93d3cudzMub3JnL0dyYXBoaWNzL1NWRy8xLjEvRFREL3N2ZzExLmR0ZCI+PHN2ZyB0PSIxNTg4ODU0ODgyOTUxIiBjbGFzcz0iaWNvbiIgdmlld0JveD0iMCAwIDEwMjQgMTAyNCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHAtaWQ9IjIxMzYiIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCI+PGRlZnM+PHN0eWxlIHR5cGU9InRleHQvY3NzIj48L3N0eWxlPjwvZGVmcz48cGF0aCBkPSJNNTEyIDc2OEMzNzAuNzczMzMzIDc2OCAyNTYgNjUzLjIyNjY2NyAyNTYgNTEyIDI1NiAzNzAuNzczMzMzIDM3MC43NzMzMzMgMjU2IDUxMiAyNTYgNjUzLjIyNjY2NyAyNTYgNzY4IDM3MC43NzMzMzMgNzY4IDUxMiA3NjggNjUzLjIyNjY2NyA2NTMuMjI2NjY3IDc2OCA1MTIgNzY4TTg1My4zMzMzMzMgNjUzLjIyNjY2NyA5OTQuNTYgNTEyIDg1My4zMzMzMzMgMzcwLjc3MzMzMyA4NTMuMzMzMzMzIDE3MC42NjY2NjcgNjUzLjIyNjY2NyAxNzAuNjY2NjY3IDUxMiAyOS40NCAzNzAuNzczMzMzIDE3MC42NjY2NjcgMTcwLjY2NjY2NyAxNzAuNjY2NjY3IDE3MC42NjY2NjcgMzcwLjc3MzMzMyAyOS40NCA1MTIgMTcwLjY2NjY2NyA2NTMuMjI2NjY3IDE3MC42NjY2NjcgODUzLjMzMzMzMyAzNzAuNzczMzMzIDg1My4zMzMzMzMgNTEyIDk5NC41NiA2NTMuMjI2NjY3IDg1My4zMzMzMzMgODUzLjMzMzMzMyA4NTMuMzMzMzMzIDg1My4zMzMzMzMgNjUzLjIyNjY2N1oiIHAtaWQ9IjIxMzciIGZpbGw9IiNhN2E3YTciPjwvcGF0aD48L3N2Zz4=',
-    };
+  };
   const blackBase64 = 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBzdGFuZGFsb25lPSJubyI/PjwhRE9DVFlQRSBzdmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMS4xLy9FTiIgImh0dHA6Ly93d3cudzMub3JnL0dyYXBoaWNzL1NWRy8xLjEvRFREL3N2ZzExLmR0ZCI+PHN2ZyB0PSIxNTg4ODU0MzQ2ODgzIiBjbGFzcz0iaWNvbiIgdmlld0JveD0iMCAwIDEwMjQgMTAyNCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHAtaWQ9IjIxMjciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCI+PGRlZnM+PHN0eWxlIHR5cGU9InRleHQvY3NzIj48L3N0eWxlPjwvZGVmcz48cGF0aCBkPSJNNTEyIDc2OHExMDUuOTg0IDAgMTgwLjk5Mi03NS4wMDh0NzUuMDA4LTE4MC45OTItNzUuMDA4LTE4MC45OTItMTgwLjk5Mi03NS4wMDhxLTUyLjAxMDY2NyAwLTEwNS45ODQgMjQuMDIxMzMzIDY2LjAwNTMzMyAyOS45OTQ2NjcgMTA3LjAwOCA5My4wMTMzMzN0NDEuMDAyNjY3IDEzOS4wMDgtNDEuMDAyNjY3IDEzOS4wMDgtMTA3LjAwOCA5My4wMTMzMzNxNTQuMDE2IDI0LjAyMTMzMyAxMDUuOTg0IDI0LjAyMTMzM3pNODU0LjAxNiAzNzAuMDA1MzMzbDEzOS45ODkzMzMgMTQxLjk5NDY2Ny0xMzkuOTg5MzMzIDE0MS45OTQ2NjcgMCAyMDAuMDIxMzMzLTIwMC4wMjEzMzMgMC0xNDEuOTk0NjY3IDEzOS45ODkzMzMtMTQxLjk5NDY2Ny0xMzkuOTg5MzMzLTIwMC4wMjEzMzMgMCAwLTIwMC4wMjEzMzMtMTM5Ljk4OTMzMy0xNDEuOTk0NjY3IDEzOS45ODkzMzMtMTQxLjk5NDY2NyAwLTIwMC4wMjEzMzMgMjAwLjAyMTMzMyAwIDE0MS45OTQ2NjctMTM5Ljk4OTMzMyAxNDEuOTk0NjY3IDEzOS45ODkzMzMgMjAwLjAyMTMzMyAwIDAgMjAwLjAyMTMzM3oiIHAtaWQ9IjIxMjgiIGZpbGw9IiNhN2E3YTciPjwvcGF0aD48L3N2Zz4=';
-
-    const whiteBase64 = isDouyu ? whiteBase64s.finally : (isBilibili ? (isBilibiliHome || isBilibiliRank ? whiteBase64s.bilibili : whiteBase64s.bilibiliVideo) : whiteBase64s.finally);
+  const whiteBase64 = isDouyu ? whiteBase64s.finally : (isBilibili ? (isBilibiliHome || isBilibiliRank ? whiteBase64s.bilibili : whiteBase64s.bilibiliVideo) : whiteBase64s.finally);
 
   new Promise((resolve, reject) => {
     let eleStyle = document.createElement('style');
     eleStyle.innerHTML += `
       #h2p-img-blackMode { cursor: pointer; }
       .h2p-dropdown {
-        position  : relative;
-        display    : inline-block;
+        position      : relative;
+        display       : inline-block;
         vertical-align: middle;
       }
       .h2p-dropdown:hover .h2p-dropdown-menu {
-        display    : flex;
-        visibility  : visible;
+        display       : flex;
+        visibility    : visible;
       }
       .h2p-dropdown-menu {
         position  : absolute;
@@ -945,46 +950,46 @@
         display    : none;
         opacity    : 0;
       }
-        `;
-        if (isDouyu) {}
-        else if (isBilibili) {
-            eleStyle.innerHTML += `
+    `;
+    if (isDouyu) {}
+    else if (isBilibili) {
+      eleStyle.innerHTML += `
         a.link.van-popover__reference[href$="app.bilibili.com"],
         a.link.van-popover__reference[href$="app.bilibili.com/"] { display: none!important; }
-            `;
-        }
+      `;
+    }
     document.head.appendChild(eleStyle);
 
     let div = document.createElement('div');
     div.className = 'h2p-dropdown';
     div.title = '黑暗模式';
-        if (isDouyu) {
-      div.style = 'position: relative; float: left; margin: 15px -20px 15px 20px;';
-            div.innerHTML = `
-                <img id="h2p-img-blackMode" class="h2p-dropdown-img" style="width: 30px; height: 30px;" src="${config_clear.blackMode ? blackBase64 : whiteBase64}">
-            `;
-        }
-        else if (isBilibili) {
-      if (isBilibiliHome || isBilibiliAct || isBilibiliRank || isBilibiliVideo) {
-        div.style = 'display: flex; justify-content: center;';
-        div.classList.add('nav-link-item');
-      } else if (isBilibiliLive) {
-        div.style = 'margin: 0 13px; justify-content: center;';
+      if (isDouyu) {
+        div.style = 'position: relative; float: left; margin: 15px -20px 15px 20px;';
+        div.innerHTML = `
+          <img id="h2p-img-blackMode" class="h2p-dropdown-img" style="width: 30px; height: 30px;" src="${config_clear.blackMode ? blackBase64 : whiteBase64}">
+        `;
       }
-            div.innerHTML = `
-                <img id="h2p-img-blackMode" style="width: 20px; height: 20px;" src="${config_clear.blackMode ? blackBase64 : whiteBase64}">
-            `;
-        } else if (isHuya) {
-      div.classList.add('hy-nav-right');
-      div.style = 'position: absolute; right: -35px;';
-      div.innerHTML = `
-                <img id="h2p-img-blackMode" style="width: 25px; height: 25px;" src="${config_clear.blackMode ? blackBase64 : whiteBase64}">
-            `;
+      else if (isBilibili) {
+        if (isBilibiliHome || isBilibiliAct || isBilibiliRank || isBilibiliVideo) {
+          div.style = 'display: flex; justify-content: center;';
+          div.classList.add('nav-link-item');
+        } else if (isBilibiliLive) {
+          div.style = 'margin: 0 13px; justify-content: center;';
+        }
+        div.innerHTML = `
+          <img id="h2p-img-blackMode" style="width: 20px; height: 20px;" src="${config_clear.blackMode ? blackBase64 : whiteBase64}">
+        `;
+      } else if (isHuya) {
+        div.classList.add('hy-nav-right');
+        div.style = 'position: absolute; right: -35px;';
+        div.innerHTML = `
+          <img id="h2p-img-blackMode" style="width: 25px; height: 25px;" src="${config_clear.blackMode ? blackBase64 : whiteBase64}">
+        `;
     } else {
       div.style = '';
-            div.innerHTML = `
-                <img id="h2p-img-blackMode" style="width: 25px; height: 25px;" src="${config_clear.blackMode ? blackBase64 : whiteBase64}">
-            `;
+      div.innerHTML = `
+        <img id="h2p-img-blackMode" style="width: 25px; height: 25px;" src="${config_clear.blackMode ? blackBase64 : whiteBase64}">
+      `;
     }
 
     let divDropDown = document.createElement('div');
@@ -1038,115 +1043,82 @@
     `;
     div.appendChild(divDropDown);
 
-    let setINVL_wait_div_header = setInterval(() => {
+    let INVL_render = setInterval(() => {
       if ($H2P('img#h2p-img-blackMode')) {
-          window.clearInterval(setINVL_wait_div_header);
-          setINVL_wait_div_header = null;
+          $INVL.clear(INVL_render);
+          resolve();
           return;
       }
 
       if (isDouyu && $H2P('div.Header-right')) {
-        window.clearInterval(setINVL_wait_div_header);
-        setINVL_wait_div_header = null;
         $H2P('div.Header-right').appendChild(div);
-        resolve();
       } else if (isBilibili) {
         if (isBilibiliHome || isBilibiliAct || isBilibiliRank || isBilibiliVideo) {
           if ($H2P('ul.nav-link-ul > li:nth-child(8)')) {
-            window.clearInterval(setINVL_wait_div_header);
-            setINVL_wait_div_header = null;
             $H2P('ul.nav-link-ul').appendChild(div);
-            resolve();
           }
         } else if (isBilibiliLive) {
           let ele = $H2P('ul.nav-link-ul > li:nth-child(8)') || $H2P('div.dp-table-cell.v-middle > a[data-v-3c413834]:nth-child(10)');
           if (ele) {
-            window.clearInterval(setINVL_wait_div_header);
-            setINVL_wait_div_header = null;
             ele.parentNode.appendChild(div);
-            resolve();
           }
         }
       } else if (isHuya && $H2P('div#J_duyaHeaderRight')) {
-        window.clearInterval(setINVL_wait_div_header);
-        setINVL_wait_div_header = null;
         $H2P('div.duya-header-bd').appendChild(div);
-        resolve();
       }
       
       if (!isDouyu && !isBilibili && !isHuya) {
-        window.clearInterval(setINVL_wait_div_header);
-        setINVL_wait_div_header = null;
         div.style.left = '250px';
         document.body.appendChild(div);
-        resolve();
       }
     }, 500);
   })
   .then(() => {
     document.addEventListener('keydown', (e) => {
       // 黑暗模式快捷键
-      if (e.shiftKey && e.which == myKeyCode.z) { $H2P('img#h2p-img-blackMode').click(); }
+      if (e.shiftKey && e.which == $KEYCODE.z) { $H2P('img#h2p-img-blackMode').click(); }
     });
 
-    let eleBM = $H2P('img#h2p-img-blackMode');
-    eleBM.addEventListener('click', () => {
+    $H2P('img#h2p-img-blackMode').addEventListener('click', (event) => {
       config_clear.blackMode = !config_clear.blackMode;
-      localStorage.setItem(LSClear, JSON.stringify(config_clear));
-      eleBM.src = config_clear.blackMode ? blackBase64 : whiteBase64;
+      $LS.set(LSClear, config_clear);
+      event.currentTarget.src = config_clear.blackMode ? blackBase64 : whiteBase64;
       updateClearModeIcon();
       blackMode();
     });
 
-    let eleSelect = $H2P('div#h2p-div-blackMode-select');
-    eleSelect.addEventListener('click', (event) => {
+    $H2P('div#h2p-div-blackMode-select').addEventListener('click', (event) => {
       if (event.target.tagName.toLowerCase() !== 'input') { return; }
 
       const target = event.target;
-      if (target.id === 'h2p-input-blackMode-grey') {
-        config_clear.BMGrey = true;
-        config_clear.BMBlack = false;
-        config_clear.BMDIY = false;
-        $H2P('input#h2p-input-blackMode-grey').checked = config_clear.BMGrey;
-        $H2P('input#h2p-input-blackMode-black').checked = false;
-        $H2P('input#h2p-input-blackMode-DIY').checked = false;
-      } else if (target.id === 'h2p-input-blackMode-black') {
-        config_clear.BMGrey = false;
-        config_clear.BMBlack = true;
-        config_clear.BMDIY = false;
-        $H2P('input#h2p-input-blackMode-grey').checked = false;
-        $H2P('input#h2p-input-blackMode-black').checked = config_clear.BMBlack;
-        $H2P('input#h2p-input-blackMode-DIY').checked = false;
-      } else if (target.id === 'h2p-input-blackMode-DIY') {
-        config_clear.BMGrey = false;
-        config_clear.BMBlack = false;
-        config_clear.BMDIY = true;
-        $H2P('input#h2p-input-blackMode-grey').checked = false;
-        $H2P('input#h2p-input-blackMode-black').checked = false;
-        $H2P('input#h2p-input-blackMode-DIY').checked = config_clear.BMDIY;
-      }
-      localStorage.setItem(LSClear, JSON.stringify(config_clear));
+      config_clear.BMGrey   = target.id.endsWith('-grey');
+      config_clear.BMBlack  = target.id.endsWith('-black');
+      config_clear.BMDIY    = target.id.endsWith('-DIY');
+      $H2P('input#h2p-input-blackMode-grey').checked  = config_clear.BMGrey;
+      $H2P('input#h2p-input-blackMode-black').checked = config_clear.BMBlack;
+      $H2P('input#h2p-input-blackMode-DIY').checked   = config_clear.BMDIY;
+      $LS.set(LSClear, config_clear);
       blackMode();
-    })
+    });
 
     $H2P('input#h2p-input-blackMode-DIY-BG-deep').addEventListener('change', (event) => {
       config_clear.BMBGDeep = event.target.value;
-      localStorage.setItem(LSClear, JSON.stringify(config_clear));
+      $LS.set(LSClear, config_clear);
       blackMode();
     }, false);
     $H2P('input#h2p-input-blackMode-DIY-BG-light').addEventListener('change', (event) => {
       config_clear.BMBGLight = event.target.value;
-      localStorage.setItem(LSClear, JSON.stringify(config_clear));
+      $LS.set(LSClear, config_clear);
       blackMode();
     }, false);
     $H2P('input#h2p-input-blackMode-DIY-font-deep').addEventListener('change', (event) => {
       config_clear.BMFontDeep = event.target.value;
-      localStorage.setItem(LSClear, JSON.stringify(config_clear));
+      $LS.set(LSClear, config_clear);
       blackMode();
     }, false);
     $H2P('input#h2p-input-blackMode-DIY-font-light').addEventListener('change', (event) => {
       config_clear.BMFontLight = event.target.value;
-      localStorage.setItem(LSClear, JSON.stringify(config_clear));
+      $LS.set(LSClear, config_clear);
       blackMode();
     }, false);
   })
@@ -1576,7 +1548,7 @@
           #root > div.bc-wrapper:last-child { display: none!important; }
         `;
         if (isDouyuTopic) {
-          if (window.location.href.includes('lolylyx')) {
+          if ($PAGE.href.includes('lolylyx')) {
             eleStyle.innerHTML += `
               div#root > div.wm-general:nth-child(4) { margin-top: 70px; }
               div#root > div.wm-general:nth-child(3),
@@ -1776,46 +1748,46 @@
       #h2p-div-clearMode-select span {
         margin-left: 2px;
       }
-        `;
-        if (isDouyu) {}
-        else if (isBilibili) {
+    `;
+    if (isDouyu) {}
+    else if (isBilibili) {
       eleStyle.innerHTML += `
         a.link.van-popover__reference[href$="app.bilibili.com"],
         a.link.van-popover__reference[href$="app.bilibili.com/"] { display: none!important; }
-            `;
-        }
+      `;
+    }
     document.head.appendChild(eleStyle);
 
     let div = document.createElement('div');
     div.className = 'h2p-dropdown';
     div.title = '清爽模式';
-        if (isDouyu) {
+    if (isDouyu) {
       div.style = 'position: relative; float: left; margin: 15px -20px 15px 30px;';
-            div.innerHTML = `
-                <img id="h2p-img-clearMode" class="h2p-dropdown-img" style="width: 30px; height: 30px;" src="${config_clear.clearMode ? (config_clear.blackMode ? backBase64.black : backBase64.white) : (config_clear.blackMode ? clearBase64.black : clearBase64.white)}">
-            `;
-        }
-        else if (isBilibili) {
+      div.innerHTML = `
+        <img id="h2p-img-clearMode" class="h2p-dropdown-img" style="width: 30px; height: 30px;" src="${config_clear.clearMode ? (config_clear.blackMode ? backBase64.black : backBase64.white) : (config_clear.blackMode ? clearBase64.black : clearBase64.white)}">
+      `;
+    }
+    else if (isBilibili) {
       if (isBilibiliHome || isBilibiliAct || isBilibiliRank || isBilibiliVideo) {
         div.style = 'display: flex; justify-content: center;';
         div.classList.add('nav-link-item');
       } else if (isBilibiliLive) {
         div.style = 'margin: 0 10px; justify-content: center;';
       }
-            div.innerHTML = `
-                <img id="h2p-img-clearMode" style="width: 20px; height: 20px;" src="${config_clear.clearMode ? (config_clear.blackMode ? backBase64.black : backBase64.white) : (config_clear.blackMode ? clearBase64.black : clearBase64.white)}">
-            `;
-        } else if (isHuya) {
+      div.innerHTML = `
+        <img id="h2p-img-clearMode" style="width: 20px; height: 20px;" src="${config_clear.clearMode ? (config_clear.blackMode ? backBase64.black : backBase64.white) : (config_clear.blackMode ? clearBase64.black : clearBase64.white)}">
+      `;
+    } else if (isHuya) {
       div.classList.add('hy-nav-right');
       div.style = 'position: absolute; right: -70px;';
       div.innerHTML = `
         <img id="h2p-img-clearMode" style="width: 25px; height: 25px;" src="${config_clear.clearMode ? (config_clear.blackMode ? backBase64.black : backBase64.white) : (config_clear.blackMode ? clearBase64.black : clearBase64.white)}">
-            `;
+      `;
     } else {
       div.style = '';
-            div.innerHTML = `
-                <img id="h2p-img-clearMode" style="width: 20px; height: 20px;" src="${config_clear.clearMode ? (config_clear.blackMode ? backBase64.black : backBase64.white) : (config_clear.blackMode ? clearBase64.black : clearBase64.white)}">
-            `;
+      div.innerHTML = `
+        <img id="h2p-img-clearMode" style="width: 20px; height: 20px;" src="${config_clear.clearMode ? (config_clear.blackMode ? backBase64.black : backBase64.white) : (config_clear.blackMode ? clearBase64.black : clearBase64.white)}">
+      `;
     }
 
     let divDropDown = document.createElement('div');
@@ -1861,67 +1833,48 @@
     `;
     div.appendChild(divDropDown);
 
-    let setINVL_wait_div_header = setInterval(() => {
-            if ($H2P('img#h2p-img-clearMode')) {
-                window.clearInterval(setINVL_wait_div_header);
-                setINVL_wait_div_header = null;
-                return;
-            }
+    let INVL_render = setInterval(() => {
+      if ($H2P('img#h2p-img-clearMode')) {
+        $INVL.clear(INVL_render);
+        resolve();
+        return;
+      }
 
       if (isDouyu && $H2P('div.Header-right')) {
-        window.clearInterval(setINVL_wait_div_header);
-        setINVL_wait_div_header = null;
         $H2P('div.Header-right').appendChild(div);
-        resolve();
       } else if (isBilibili) {
-                if (isBilibiliHome || isBilibiliAct || isBilibiliRank || isBilibiliVideo) {
+        if (isBilibiliHome || isBilibiliAct || isBilibiliRank || isBilibiliVideo) {
           if ($H2P('ul.nav-link-ul > li:nth-child(8)')) {
-            window.clearInterval(setINVL_wait_div_header);
-            setINVL_wait_div_header = null;
             $H2P('ul.nav-link-ul').appendChild(div);
-            resolve();
           }
         } else if (isBilibiliLive) {
           let ele = $H2P('ul.nav-link-ul > li:nth-child(8)') || $H2P('div.dp-table-cell.v-middle > a[data-v-3c413834]:nth-child(10)');
           if (ele) {
-            window.clearInterval(setINVL_wait_div_header);
-            setINVL_wait_div_header = null;
             ele.parentNode.appendChild(div);
-            resolve();
           }
         }
       } else if (isHuya && $H2P('div#J_duyaHeaderRight')) {
-        window.clearInterval(setINVL_wait_div_header);
-        setINVL_wait_div_header = null;
         $H2P('div.duya-header-bd').appendChild(div);
-        resolve();
       }
       
       if (!isDouyu && !isBilibili && !isHuya) {
-        window.clearInterval(setINVL_wait_div_header);
-        setINVL_wait_div_header = null;
         div.style.left = '300px';
         document.body.appendChild(div);
-        resolve();
       }
     }, 500);
   })
   .then(() => {
-    document.addEventListener('keydown', (e) => {
-      // 黑暗模式快捷键
-      if (e.shiftKey && e.which == myKeyCode.x) { $H2P('img#h2p-img-clearMode').click(); }
-    });
+    // 清爽模式快捷键
+    document.addEventListener('keydown', (e) => { if (e.shiftKey && e.which == $KEYCODE.x) { $H2P('img#h2p-img-clearMode').click(); } });
 
-    let eleClearMode = $H2P('img#h2p-img-clearMode');
-    eleClearMode.addEventListener('click', () => {
+    $H2P('img#h2p-img-clearMode').addEventListener('click', (event) => {
       config_clear.clearMode = !config_clear.clearMode;
-      localStorage.setItem(LSClear, JSON.stringify(config_clear));
-      eleClearMode.src = config_clear.clearMode ? (config_clear.blackMode ? backBase64.black : backBase64.white) : (config_clear.blackMode ? clearBase64.black : clearBase64.white);
+      $LS.set(LSClear, config_clear);
+      event.currentTarget.src = config_clear.clearMode ? (config_clear.blackMode ? backBase64.black : backBase64.white) : (config_clear.blackMode ? clearBase64.black : clearBase64.white);
       clearMode();
     });
 
-    let eleVary = $H2P('div#h2p-div-clearMode-select');
-    eleVary.addEventListener('click', (event) => {
+    $H2P('div#h2p-div-clearMode-select').addEventListener('click', (event) => {
       if (event.target.tagName.toLowerCase() !== 'input') { return; }
 
       const target = event.target;
@@ -1949,16 +1902,16 @@
         config_clear.isClearPlay = !config_clear.isClearPlay;
         if (config_clear.clearMode) { clearPlay(); }
       }
-      localStorage.setItem(LSClear, JSON.stringify(config_clear));
+      $LS.set(LSClear, config_clear);
     }, false);
   })
   .then(() => {
-    if (config_clear.isClearNav)  { $H2P('input#h2p-input-clearMode-nav').checked = true; }
-    if (config_clear.isClearInfo)  { $H2P('input#h2p-input-clearMode-info').checked = true; }
-    if (config_clear.isClearAside)  { $H2P('input#h2p-input-clearMode-aside').checked = true; }
-    if (config_clear.isClearGift)  { $H2P('input#h2p-input-clearMode-gift').checked = true; }
-    if (config_clear.isClearBar)  { $H2P('input#h2p-input-clearMode-bar').checked = true; }
-    if (config_clear.isClearPlay)  { $H2P('input#h2p-input-clearMode-play').checked = true; }
+    $H2P('input#h2p-input-clearMode-nav').checked   = config_clear.isClearNav;
+    $H2P('input#h2p-input-clearMode-info').checked  = config_clear.isClearInfo;
+    $H2P('input#h2p-input-clearMode-aside').checked = config_clear.isClearAside;
+    $H2P('input#h2p-input-clearMode-gift').checked  = config_clear.isClearGift;
+    $H2P('input#h2p-input-clearMode-bar').checked   = config_clear.isClearBar;
+    $H2P('input#h2p-input-clearMode-play').checked  = config_clear.isClearPlay;
   })
 
   function updateClearModeIcon () {
@@ -1987,8 +1940,7 @@
     new Promise((resolve, reject) => {
       let INVL_AddBtnCancelFollow = setInterval(() => {
         if ($H2P('div#filter-tab-expandable-wrapper') && !$H2P('a#h2p-a-cancelFollow')) {
-          window.clearInterval(INVL_AddBtnCancelFollow);
-          INVL_AddBtnCancelFollow = null;
+          $INVL.clear(INVL_AddBtnCancelFollow);
           resolve();
         }
       }, 500);
@@ -2099,7 +2051,7 @@
   if (regNums.test($H2P('head > title').textContent)) {
     roomInfo.id = regNums.exec($H2P('head > title').textContent)[0];
   } else {
-    roomInfo.id = regNums.exec(window.location.href) ? regNums.exec(window.location.href)[0] : window.location.href.split('/www.huya.com/').pop();
+    roomInfo.id = regNums.exec($PAGE.href) ? regNums.exec($PAGE.href)[0] : $PAGE.href.split('/www.huya.com/').pop();
   }
 
   if (isDouyu) {
@@ -2109,7 +2061,7 @@
     };
 
     // 获取在线人数
-    let urlId = isDouyuTopic ? window.location.href.split('=').pop() : window.location.pathname.split('/').pop();
+    let urlId = isDouyuTopic ? $PAGE.href.split('=').pop() : window.location.pathname.split('/').pop();
     fetch(`https://bojianger.com/data/api/common/search.do?keyword=${urlId}`)
     .then(res => res.json())
     .then(res => {
@@ -2208,7 +2160,7 @@
         }
         console.log('有粉丝牌的主播房间号');
         console.log(roomOfAnchorFan);
-        let anchorRoom= window.location.href.split('/').pop();
+        let anchorRoom= $PAGE.href.split('/').pop();
         userInfo.isAnchorFan = anchorRoom in roomOfAnchorFan;
         setTimeout(() => { $H2P('iframe#h2p-fansBadgeList').remove(); }, 2000)
       });
@@ -2256,8 +2208,7 @@
 
       let setINVL_wait_div_announce = setInterval(() => {
         if ($H2P('div.layout-Player-asideMainTop') && $H2P('div.BarrageSuperLink') && $H2P('div.ChatToolBar')) {
-          window.clearInterval(setINVL_wait_div_announce);
-          setINVL_wait_div_announce = null;
+          $INVL.clear(setINVL_wait_div_announce);
           setTimeout(() => {
             $H2P('div.layout-Player-announce').appendChild(divBar);
             resolve();
@@ -2322,16 +2273,9 @@
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
 
   const LSScript = 'h2p-DY-config-script';
-  let config_script_pre = {
+  let config_script = $LS.init(LSScript, {
     icon  : '🐯'
-  };
-  let config_script = {};
-  Object.assign(config_script, config_script_pre);
-  let config_script_tmp = JSON.parse(localStorage.getItem(LSScript)) || {};
-  Object.assign(config_script, config_script_tmp);
-  for (let key in config_script) { if (!(key in config_script_pre)) { delete config_script[key]; } }
-  localStorage.removeItem(LSScript);
-  localStorage.setItem(LSScript, JSON.stringify(config_script));
+  });
 
   let viewShow_bar  =  false;
   let viewShow_config  =  false;
@@ -2343,58 +2287,58 @@
     eleStyle.type = 'text/css';
     eleStyle.innerHTML += `
       #h2p-div-sign {
-        width        : 18px;
-        height      : 18px;
-        display      : inline-block;
-        vertical-align   : middle;
+        width         : 18px;
+        height        : 18px;
+        display       : inline-block;
+        vertical-align: middle;
       }
       #h2p-div-sign span {
-        font-size    : 18px;
-        cursor      : pointer;
+        font-size     : 18px;
+        cursor        : pointer;
       }
 
       #div-DYScript input, #div-DYScript button, #div-DYScript select {
-        outline      : none;
-        line-height  : 10px;
+        outline       : none;
+        line-height   : 10px;
       }
       #div-DYScript {
-        position       : absolute;
-        bottom         : ${isBilibiliLive ? 147 : 1}px;
-        width          : calc(100%);
-        border         : none;
-        margin         : 0 0 0 -1px;
+        position      : absolute;
+        bottom        : ${isBilibiliLive ? 147 : 1}px;
+        width         : calc(100%);
+        border        : none;
+        margin        : 0 0 0 -1px;
         box-shadow    : #c7c7c7 0 -5px 5px 0;
         display       : flex;
         flex-flow     : row wrap;
         z-index       : 999;
       }
       #div-DYScript .h2p-div-inlinepanel {
-        width          : calc(100% - 20px);
+        width         : calc(100% - 20px);
         padding       : 10px;
         border-width  : 0 0 1px 0;
-        font-family    : WeibeiSC-Bold, STKaiti;
-        font-size      : 16px;
+        font-family   : WeibeiSC-Bold, STKaiti;
+        font-size     : 16px;
         background    : #f5f5f5;
       }
 
       #div-DYScript .h2p-div-inlinetab {
-        width          : calc(100%);
+        width         : calc(100%);
         border-top    : 1px solid #DCDCDC;
-        border-radius  : 2px;
-        font-family    : WeibeiSC-Bold, STKaiti;
-        font-size      : 16px;
+        border-radius : 2px;
+        font-family   : WeibeiSC-Bold, STKaiti;
+        font-size     : 16px;
         background    : #f5f5f5;
         display       : flex;
         flex-flow     : row wrap;
       }
       #div-DYScript .h2p-div-layer {
         position      : relative;
-        width          : 100%;
+        width         : 100%;
         height        : 24px;
       }
       #div-DYScript .h2p-div-layer-half {
         position      : absolute;
-        width          : 50%;
+        width         : 50%;
         height        : 24px;
       }
       #div-DYScript .h2p-input-normal {
@@ -2441,21 +2385,19 @@
 
     // 弹幕框上的 🐯
     let div_sign = undefined;
+    div_sign = document.createElement('div');
     if (isDouyu) {
-      div_sign = document.createElement('div');
       div_sign.id = 'h2p-div-sign';
       div_sign.style = 'margin: -8px 0 0 -3px;';
       div_sign.title = '斗鱼脚本';
       div_sign.innerHTML = `<span id="h2p-span-DYScript">${config_script.icon}</span>`;
     } else if (isHuya) {
-      div_sign = document.createElement('div');
       div_sign.id = 'h2p-div-sign';
       div_sign.classList = 'room-chat-tool';
       div_sign.style = 'font-size: 21px; line-height: 21px;';
       div_sign.title = '虎牙脚本';
       div_sign.innerHTML = `<span id="h2p-span-DYScript">${config_script.icon}</span>`;
     } else if (isBilibiliLive) {
-      div_sign = document.createElement('div');
       div_sign.id = 'h2p-div-sign';
       div_sign.classList = 'icon-item icon-font';
       div_sign.style = 'margin-top: -10px; display: inline-block;';
@@ -2473,32 +2415,28 @@
     // 检查弹幕图标挂载点（斗鱼弹幕输入框）是否加载完成
     let check_mountPoint_barPanel = setInterval(() => {
       if (isDouyu && $H2P('div.layout-Player-asideMainTop') && $H2P('div.BarrageSuperLink') && $H2P('div.ChatToolBar')) {
-        window.clearInterval(check_mountPoint_barPanel);
-        check_mountPoint_barPanel = null;
+        $INVL.clear(check_mountPoint_barPanel);
         setTimeout(() => {
           $H2P('div.layout-Player-asideMainTop').appendChild(div_DYScript);
           $H2P('div.ChatToolBar').appendChild(div_sign);
           resolve();
         }, 2000);
       } else if (isHuya && $H2P('div.room-chat-tools') && $H2P('div.room-chat-tools > .room-chat-tool') && $H2P('div#watchChat_pub')) {
-        window.clearInterval(check_mountPoint_barPanel);
-        check_mountPoint_barPanel = null;
+        $INVL.clear(check_mountPoint_barPanel);
         setTimeout(() => {
           $H2P('div#watchChat_pub').appendChild(div_DYScript);
           $H2P('div.room-chat-tools').appendChild(div_sign);
           resolve();
         }, 2000);
       } else if (isBilibiliLive && $H2P('div.chat-history-panel') && $H2P('div#iconConfigRight')) {
-        window.clearInterval(check_mountPoint_barPanel);
-        check_mountPoint_barPanel = null;
+        $INVL.clear(check_mountPoint_barPanel);
         setTimeout(() => {
           $H2P('div.chat-history-panel').appendChild(div_DYScript);
           $H2P('div#iconConfigRight').appendChild(div_sign);
           resolve();
         }, 2000);
       } else if (!isDouyu && !isHuya && !isBilibili) {
-        window.clearInterval(check_mountPoint_barPanel);
-        check_mountPoint_barPanel = null;
+        $INVL.clear(check_mountPoint_barPanel);
         document.body.appendChild(div_DYScript);
         document.body.appendChild(div_sign);
         resolve();
@@ -2559,7 +2497,7 @@
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
 
   const LSChat = 'h2p-DY-config-chat';
-  let config_chat_pre = {
+  let config_chat = $LS.init(LSChat, {
     invlStart : 3,
     invlEnd   : 4,
     isLuck    : false,
@@ -2573,15 +2511,7 @@
     isSendNow : false,
     isSend    : false,
     sendRooms : [],
-  };
-  let config_chat = {};
-  Object.assign(config_chat, config_chat_pre);
-  let config_chat_tmp = JSON.parse(localStorage.getItem(LSChat)) || {};
-  Object.assign(config_chat, config_chat_tmp);
-  for (let key in config_chat) { if (!(key in config_chat_pre)) { delete config_chat[key]; } }
-  console.log(config_chat);
-  localStorage.removeItem(LSChat);
-  localStorage.setItem(LSChat, JSON.stringify(config_chat));
+  });
 
   config_chat.isSendNow = config_chat.sendRooms.includes(roomInfo.id);
   console.log(config_chat);
@@ -2739,8 +2669,7 @@
 
     let setINVL_wait_div_DYScript = setInterval(() => {
       if ($H2P('div#div-DYScript')) {
-        window.clearInterval(setINVL_wait_div_DYScript);
-        setINVL_wait_div_DYScript = null;
+        $INVL.clear(setINVL_wait_div_DYScript);
         $H2P('div#div-DYScript').appendChild(div);
         resolve();
       }
@@ -2877,10 +2806,9 @@
         ele.disabled = !ele.disabled;
       });
 
-      window.clearTimeout(INVL_SendBar);
+      clearTimeout(INVL_SendBar);
       INVL_SendBar = null;
-      window.clearInterval(INVL_ShowCD);
-      INVL_ShowCD = null;
+      $INVL.clear(INVL_ShowCD);
       if (config_chat.isSendNow) {
         setINVL_SendBar();
         eleSend.classList.add('h2p-bg-open');
@@ -2926,39 +2854,39 @@
   .catch(error => console.log(error))
   // 读取配置参数
   .then(() => {
-  $H2P('input#h2p-input-bar-isLuck').checked = config_chat.isLuck || false;
-  $H2P('input#h2p-input-bar-luck-time').value = config_chat.luckTime || 1;
+    $H2P('input#h2p-input-bar-isLuck').checked = config_chat.isLuck || false;
+    $H2P('input#h2p-input-bar-luck-time').value = config_chat.luckTime || 1;
 
-  $H2P('input#h2p-input-bar-invl-start').value = config_chat.invlStart || '';
-  $H2P('input#h2p-input-bar-invl-end').value = config_chat.invlEnd || '';
-    
-  $H2P('input#h2p-input-bar-isKeyRe').checked = config_chat.isKeyRe || false;
-  if (!config_chat.keyReBar || !Array.isArray(config_chat.keyReBar)) { config_chat.keyReBar = []; }
-  for (let {key, re} of config_chat.keyReBar) { $H2P('select#h2p-select-keyRe').options.add(new Option(key, re)); }
+    $H2P('input#h2p-input-bar-invl-start').value = config_chat.invlStart || '';
+    $H2P('input#h2p-input-bar-invl-end').value = config_chat.invlEnd || '';
+      
+    $H2P('input#h2p-input-bar-isKeyRe').checked = config_chat.isKeyRe || false;
+    if (!config_chat.keyReBar || !Array.isArray(config_chat.keyReBar)) { config_chat.keyReBar = []; }
+    for (let {key, re} of config_chat.keyReBar) { $H2P('select#h2p-select-keyRe').options.add(new Option(key, re)); }
 
-  $H2P('input#h2p-input-bar-isCopy').checked = config_chat.isCopy || false;
-  $H2P('input#h2p-input-bar-copy-invl').value = config_chat.copyInvl || '',
+    $H2P('input#h2p-input-bar-isCopy').checked = config_chat.isCopy || false;
+    $H2P('input#h2p-input-bar-copy-invl').value = config_chat.copyInvl || '',
 
-  $H2P('input#h2p-input-bar-isLoop').checked = config_chat.isLoop || false;
-  $H2P('textarea#h2p-ta-bar-loopBar').value = Array.isArray(config_chat.loopBar) ? config_chat.loopBar.join('\n') : '';
-    
-  if (config_chat.isSend) {
-    config_chat.isSendNow = false;
-    config_chat.isSend = false;
-    $H2P('button#h2p-btn-bar-sendAll').click();
-  } else if (config_chat.isSendNow) {
-    config_chat.isSendNow = false;
-    $H2P('button#h2p-btn-bar-send').click();
-  }
-  if (!Chat) { Chat = setBar(); }
-  })
+    $H2P('input#h2p-input-bar-isLoop').checked = config_chat.isLoop || false;
+    $H2P('textarea#h2p-ta-bar-loopBar').value = Array.isArray(config_chat.loopBar) ? config_chat.loopBar.join('\n') : '';
+      
+    if (config_chat.isSend) {
+      config_chat.isSendNow = false;
+      config_chat.isSend = false;
+      $H2P('button#h2p-btn-bar-sendAll').click();
+    } else if (config_chat.isSendNow) {
+      config_chat.isSendNow = false;
+      $H2P('button#h2p-btn-bar-send').click();
+    }
+    if (!Chat) { Chat = setBar(); }
+    })
   .then(() => {
     if (config_chat.keyReBar && config_chat.keyReBar.length > 0) {
       $H2P('input#h2p-input-key').value = $H2P('select#h2p-select-keyRe').selectedOptions[0].textContent;
       $H2P('input#h2p-input-re').value = $H2P('select#h2p-select-keyRe').selectedOptions[0].value;
     }
   })
-    .catch(error => { console.log(error); })
+  .catch(error => { console.log(error); })
   
   function getBar () {
     let barrage = undefined;
@@ -3082,7 +3010,7 @@
 
   function setINVL_ShowCD (invl) {
     new Promise((resolve, reject) => {
-      window.clearInterval(INVL_ShowCD);
+      $INVL.clear(INVL_ShowCD);
       resolve(invl);
     }).then((invl)=> {
       let cd = invl + 0.3;
@@ -3098,18 +3026,18 @@
     return {
       setMsg : (msg)=>{
         if (!eleSetBar) {
-          let elePath =  isDouyu ? '.ChatSend-txt' :
-                  isHuya ? '#pub_msg_input' :
-                  isBilibiliLive ? 'textarea.chat-input.border-box' : '';
+          let elePath = isDouyu ? '.ChatSend-txt' :
+                        isHuya ? '#pub_msg_input' :
+                        isBilibiliLive ? 'textarea.chat-input.border-box' : '';
           eleSetBar = $H2P(elePath);
         }
         if (eleSetBar && msg) { eleSetBar.value = msg; }
       },
       sendMsg : ()=>{
         if (!eleSendBar) {
-          let elePath =  isDouyu ? '.ChatSend-button' :
-                  isHuya ? '#msg_send_bt' :
-                  isBilibiliLive ? 'div.live-skin-coloration-area > button.bl-button.live-skin-highlight-button-bg > span' : '';
+          let elePath = isDouyu ? '.ChatSend-button' :
+                        isHuya ? '#msg_send_bt' :
+                        isBilibiliLive ? 'div.live-skin-coloration-area > button.bl-button.live-skin-highlight-button-bg > span' : '';
           eleSendBar = $H2P(elePath);
         }
         if (eleSendBar && eleSetBar.value) {
@@ -3144,7 +3072,7 @@
       else if (config_tool.fullMode) $H2P('button#h2p-btn-config-fullMode').click();
     }
     // shift a
-    if (e.shiftKey && e.which == myKeyCode.a) {
+    if (e.shiftKey && e.which == $KEYCODE.a) {
       if ($H2P('span#h2p-span-DYScript')) {
         if (!viewShow_script) {
           $H2P('span#h2p-span-DYScript').click();
@@ -3156,7 +3084,7 @@
       }
     }
     // shift s
-    else if (e.shiftKey && e.which == myKeyCode.s) {
+    else if (e.shiftKey && e.which == $KEYCODE.s) {
       if ($H2P('span#h2p-span-DYScript')) {
         if (!viewShow_script) {
           $H2P('span#h2p-span-DYScript').click();
@@ -3168,15 +3096,15 @@
       }
     }
     // 清爽模式快捷键
-    else if (e.shiftKey && e.which == myKeyCode.o) { $H2P('button#h2p-btn-config-wideMode').click(); }
-    else if (e.shiftKey && e.which == myKeyCode.p) { $H2P('button#h2p-btn-config-fullMode').click(); }
+    else if (e.shiftKey && e.which == $KEYCODE.o) { $H2P('button#h2p-btn-config-wideMode').click(); }
+    else if (e.shiftKey && e.which == $KEYCODE.p) { $H2P('button#h2p-btn-config-fullMode').click(); }
     // 清空弹幕
-    else if (e.shiftKey && e.which == myKeyCode.e) {
+    else if (e.shiftKey && e.which == $KEYCODE.e) {
       let elePath = isDouyu ? 'a.Barrage-toolbarClear' : 'p.clearBtn';
       $H2P(elePath).click();
     }
     // 锁定弹幕
-    else if (e.shiftKey && e.which == myKeyCode.w) {
+    else if (e.shiftKey && e.which == $KEYCODE.w) {
       let elePath = isDouyu ? 'a.Barrage-toolbarLock' : 'p.lockBtn';
       $H2P(elePath).click();
     }
@@ -3199,15 +3127,14 @@
   // 暂停
   let auto_pausePlay = () => { 
     let INVL_checkIconReady = setInterval(() => {
-      let elePathIn =  isDouyu ? 'div[class="pause-c594e8"]' :
-              isHuya ? 'div.player-pause-btn' :
-              isBilibiliAct ? 'button.blpui-btn.icon-btn[data-title="暂停"]' : '';
+      let elePathIn = isDouyu ? 'div[class="pause-c594e8"]' :
+                      isHuya ? 'div.player-pause-btn' :
+                      isBilibiliAct ? 'button.blpui-btn.icon-btn[data-title="暂停"]' : '';
       let elePathOut =isDouyu ? 'div[class="play-8dbf03"]' : 
-              isHuya ? 'div.player-play-btn' :
-              isBilibiliLive ? 'button.blpui-btn.icon-btn[data-title="播放"]' : '';
+                      isHuya ? 'div.player-play-btn' :
+                      isBilibiliLive ? 'button.blpui-btn.icon-btn[data-title="播放"]' : '';
       if ($H2P(elePathOut)) {
-        window.clearInterval(INVL_checkIconReady);
-        INVL_checkIconReady = null;
+        $INVL.clear(INVL_checkIconReady);
         console.log('启动完毕 : 暂停');
         return;
       }
@@ -3227,8 +3154,7 @@
               isHuya ? 'div.player-sound-off' :
               isBilibiliLive ? 'button.blpui-btn.icon-btn[data-title="取消静音"]' : '';
       if ($H2P(elePathOut)) {
-        window.clearInterval(INVL_checkIconReady);
-        INVL_checkIconReady = null;
+        $INVL.clear(INVL_checkIconReady);
         console.log('启动完毕 : 静音');
         return;
       }
@@ -3241,15 +3167,14 @@
   // 禁止弹幕
   let auto_hideBar = () => {
     let INVL_checkIconReady = setInterval(() => {
-      let elePathIn =  isDouyu ? 'div[class="showdanmu-42b0ac"]' :
-              isHuya ? 'div.danmu-show-btn' :
-              isBilibiliLive ? 'button.blpui-btn.icon-btn[data-title="隐藏弹幕"]' : '';
+      let elePathIn = isDouyu ? 'div[class="showdanmu-42b0ac"]' :
+                      isHuya ? 'div.danmu-show-btn' :
+                      isBilibiliLive ? 'button.blpui-btn.icon-btn[data-title="隐藏弹幕"]' : '';
       let elePathOut =isDouyu ? 'div[class="hidedanmu-5d54e2"]' :
-              isHuya ? 'div.danmu-hide-btn' :
-              isBilibiliLive ? 'button.blpui-btn.icon-btn[data-title="显示弹幕"]' : '';
+                      isHuya ? 'div.danmu-hide-btn' :
+                      isBilibiliLive ? 'button.blpui-btn.icon-btn[data-title="显示弹幕"]' : '';
       if ($H2P(elePathOut)) {
-        window.clearInterval(INVL_checkIconReady);
-        INVL_checkIconReady = null;
+        $INVL.clear(INVL_checkIconReady);
         console.log('启动完毕 : 禁止弹幕');
         return;
       }
@@ -3263,16 +3188,15 @@
   let FT_showDef = true;    // first time 点击默认画质
   let auto_showDef = () => {
     let INVL_checkIconReady = setInterval(() => {
-      let elePath =  isDouyu ? 'div.tip-e3420a > ul > li' :
-              isHuya ? 'div.player-videoline-videotype > ul > li' :
-              isBilibiliLive ? 'div.bilibili-live-player-video-controller-btn-item.bilibili-live-player-video-controller-switch-quality-btn div.blpui-btn.text-btn.no-select.html-tip-parent div.blpui-btn.text-btn.no-select' : '';
-      let elePathShow =  isDouyu ? 'label.textLabel-df8d16' :
-                isHuya ? 'span.player-videotype-cur' :
-                isBilibiliLive ? 'div.blpui-btn.text-btn.no-select.html-tip-parent span' : '';
+      let elePath = isDouyu ? 'div.tip-e3420a > ul > li' :
+                    isHuya ? 'div.player-videoline-videotype > ul > li' :
+                    isBilibiliLive ? 'div.bilibili-live-player-video-controller-btn-item.bilibili-live-player-video-controller-switch-quality-btn div.blpui-btn.text-btn.no-select.html-tip-parent div.blpui-btn.text-btn.no-select' : '';
+      let elePathShow = isDouyu ? 'label.textLabel-df8d16' :
+                        isHuya ? 'span.player-videotype-cur' :
+                        isBilibiliLive ? 'div.blpui-btn.text-btn.no-select.html-tip-parent span' : '';
       let curShow = $H2P(elePath, false) && $H2P(elePath, false).length > 0 ? (config_tool.show0 ? $H2P(elePath, false).pop().textContent : $H2P(elePath, false).shift().textContent) : '';
       if ($H2P(elePathShow) && $H2P(elePathShow).textContent === curShow) {
-        window.clearInterval(INVL_checkIconReady);
-        INVL_checkIconReady = null;
+        $INVL.clear(INVL_checkIconReady);
         console.log(`启动完毕 : ${config_tool.show0 ? '最低' : '最高'}画质`);
         return;
       }
@@ -3295,18 +3219,17 @@
   function wideMode () {
     console.log(`${config_tool.wideMode ? '启动' : '关闭'} : 宽屏模式`);
 
-    let elePathIn =  isDouyu ? 'div[class="wfs-2a8e83"]' :
-            isHuya ? 'span#player-fullpage-btn[title="剧场模式"]' :
-            isBilibiliLive ? 'button.blpui-btn.icon-btn[data-title="网页全屏"]' : '';
+    let elePathIn = isDouyu ? 'div[class="wfs-2a8e83"]' :
+                    isHuya ? 'span#player-fullpage-btn[title="剧场模式"]' :
+                    isBilibiliLive ? 'button.blpui-btn.icon-btn[data-title="网页全屏"]' : '';
     let elePathOut =isDouyu ? 'div[class="wfs-exit-180268"]' :
-            isHuya ? 'span#player-fullpage-btn[title="退出剧场"]' :
-            isBilibiliLive ? 'button.blpui-btn.icon-btn[data-title="退出网页全屏"]' : '';
+                    isHuya ? 'span#player-fullpage-btn[title="退出剧场"]' :
+                    isBilibiliLive ? 'button.blpui-btn.icon-btn[data-title="退出网页全屏"]' : '';
     if (config_tool.wideMode) {
       let start = new Date().getTime();
       let setINVL_waitWideCoin = setInterval(() => {
         if ($H2P(elePathOut)) {
-          window.clearInterval(setINVL_waitWideCoin);
-          setINVL_waitWideCoin = null;
+          $INVL.clear(setINVL_waitWideCoin);
           console.log('启动完毕 : 宽屏模式');
           return;
         }
@@ -3322,8 +3245,7 @@
         } else {
           // 等待最长 5min
           if ((new Date().getTime() - start) / 1000 > 300) {
-            window.clearInterval(setINVL_waitWideCoin);
-            setINVL_waitWideCoin = null;
+            $INVL.clear(setINVL_waitWideCoin);
           }
         }
       }, 500);
@@ -3336,19 +3258,18 @@
   function fullMode () {
     console.log(`${config_tool.fullMode ? '启动' : '关闭'} : 网页全屏`);
 
-    let elePathIn =  isDouyu ? 'div[class="fs-781153"]' :
-            isHuya ? 'span#player-fullscreen-btn[title="全屏"]' :
-            isBilibiliLive ? 'button.blpui-btn.icon-btn[data-title="全屏模式"]' : '';
+    let elePathIn = isDouyu ? 'div[class="fs-781153"]' :
+                    isHuya ? 'span#player-fullscreen-btn[title="全屏"]' :
+                    isBilibiliLive ? 'button.blpui-btn.icon-btn[data-title="全屏模式"]' : '';
     let elePathOut =isDouyu ? 'div[class="fs-exit-b6e6a7"]' :
-            isHuya ? 'span#player-fullscreen-btn[title="退出全屏"]' :
-            isBilibiliLive ? 'button.blpui-btn.icon-btn[data-title="退出全屏"]' : '';
+                    isHuya ? 'span#player-fullscreen-btn[title="退出全屏"]' :
+                    isBilibiliLive ? 'button.blpui-btn.icon-btn[data-title="退出全屏"]' : '';
 
     if (config_tool.fullMode) {
       let start = new Date().getTime();
       let setINVL_waitFullCoin = setInterval(() => {
         if ($H2P(elePathOut)) {
-          window.clearInterval(setINVL_waitFullCoin);
-          setINVL_waitFullCoin = null;
+          $INVL.clear(setINVL_waitFullCoin);
           console.log('启动完毕 : 网页全屏');
           return;
         }
@@ -3364,8 +3285,7 @@
         } else {
           // 等待最长 5min
           if ((new Date().getTime() - start) / 1000 > 300) {
-            window.clearInterval(setINVL_waitFullCoin);
-            setINVL_waitFullCoin = null;
+            $INVL.clear(setINVL_waitFullCoin);
           }
         }
       }, 500);
@@ -3459,8 +3379,7 @@
             setTimeout(() => { eles[i].click(); }, 500 * i)
           }
         } else if ($H2P('p.player-box-stat4', false).filter(ele => ele.style.visibility == 'visible').length == 6) {
-          window.clearInterval(INVL_autoGetFB);
-          INVL_autoGetFB = null;
+          $INVL.clear(INVL_autoGetFB);
         }
       }, 5000);
     } else if (isBilibiliLive) {
@@ -3477,8 +3396,8 @@
     if (isHuya) { return; }
     let start = undefined;
     let INVL_checkSignInIconReady = setInterval(() => {
-      let elePath =  isDouyu ? 'div.RoomLevelDetail-level.RoomLevelDetail-level--no' :
-              isBilibiliLive ? 'div.checkin-btn.t-center.pointer' : '';
+      let elePath = isDouyu ? 'div.RoomLevelDetail-level.RoomLevelDetail-level--no' :
+                    isBilibiliLive ? 'div.checkin-btn.t-center.pointer' : '';
       if (isDouyu) {
         if ($H2P('div.Title-followBtnBox') ) {
           if (!start) {
@@ -3486,8 +3405,7 @@
           } else {
             if ($H2P('div.Title-followBtnBox.is-followed')) {
               if ($H2P(elePath)) {
-                window.clearInterval(INVL_checkSignInIconReady);
-                INVL_checkSignInIconReady = null;
+                $INVL.clear(INVL_checkSignInIconReady);
                 console.log('启动完毕 : 签到 : 已关注');
                 $H2P(elePath).click();
                 setTimeout(() => {
@@ -3497,16 +3415,14 @@
               }
             }
             else if (new Date().getTime() / 1000 - start > 100) {
-              window.clearInterval(INVL_checkSignInIconReady);
-              INVL_checkSignInIconReady = null;
+              $INVL.clear(INVL_checkSignInIconReady);
               console.log('启动完毕 : 签到 : 未关注');
             }
           }
         }
       } else if (isBilibiliLive) {
         if ($H2P(elePath)) {
-          window.clearInterval(INVL_checkSignInIconReady);
-          INVL_checkSignInIconReady = null;
+          $INVL.clear(INVL_checkSignInIconReady);
           console.log('启动完毕 : 签到');
           $H2P(elePath).click();
         }
@@ -3545,26 +3461,10 @@
           let roomId = roomIds[i];
           if (roomOfAnchorFan[roomId].anchorUp === 0) { setTimeout(() => { donateYGB(roomId); }, (i+1) * 2000); }
         }
-        window.clearInterval(INVL_anchorUp);
-        INVL_anchorUp = null;
+        $INVL.clear(INVL_anchorUp);
         console.log('启动完毕 : 赠送荧光棒');
       }
     }, 1000);
-  }
-
-  if (isDouyu) {
-    // 检测是否出现 在电脑面前检测
-    setInterval(() => {
-      if ($H2P('div.btn2-869c8d')) {
-        $H2P('div.btn2-869c8d', false).forEach(ele => { ele.click() });
-      }
-    }, 10000);
-    // 检测是否出现 重新加载
-    setInterval(() => {
-      if ($H2P('div.reload-0876b5') && $H2P('div.reload-0876b5').style.display != 'none') {
-        $H2P('div.reload-0876b5', false).forEach(ele => { ele.click(); });
-      }
-    }, 10000);
   }
 
 
@@ -3581,7 +3481,7 @@
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
 
   const LSConfig = 'h2p-DY-config-tool';
-  let config_tool_pre = {
+  let config_tool = $LS.init(LSConfig, {
     pausePlay  : false,
     hideSound  : false,
     hideBar    : false,
@@ -3593,14 +3493,7 @@
     findTreasure: '',
     signIn    : false,
     anchorUp    : false,
-  };
-  let config_tool = {};
-  Object.assign(config_tool, config_tool_pre);
-  let config_tool_tmp = JSON.parse(localStorage.getItem(LSConfig)) || {};
-  Object.assign(config_tool, config_tool_tmp);
-  for (let key in config_tool) { if (!(key in config_tool_pre)) { delete config_tool[key]; } }
-  localStorage.removeItem(LSConfig);
-  localStorage.setItem(LSConfig, JSON.stringify(config_tool));
+  });
 
   if (config_tool.pausePlay) {
     console.log('启动 : 暂停播放');
@@ -3744,8 +3637,7 @@
 
     let setINVL_wait_div_DYScript = setInterval(() => {
       if ($H2P('div#div-DYScript')) {
-        window.clearInterval(setINVL_wait_div_DYScript);
-        setINVL_wait_div_DYScript = null;
+        $INVL.clear(setINVL_wait_div_DYScript);
         $H2P('div#div-DYScript').appendChild(div);
         setTimeout(resolve, 250);
       }
@@ -3824,17 +3716,3 @@
   })
   .catch(error => { console.log(error); })
 })();
-
-/*
-  <div style=`
-      position: fixed;
-      width: 100%;
-      height: 100%;
-      left: 0;
-      top: 0;
-      opacity: 0.5;
-      background: black;
-      z-index: 999;
-    `></div>
-  <iframe width="670" height="500" src="//hd.huya.com/pay/index.html?source=web&lp=1259515661837&hasVideo=0" style="position: fixed; border-width: 0px; left: 385px; top: 125px; z-index: 1000;">
-*/
