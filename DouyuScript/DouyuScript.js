@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        H2P: 斗鱼虎牙B站小工具
 // @namespace   http://tampermonkey.net/
-// @version     2.2.2
+// @version     2.2.3
 // @icon        http://www.douyutv.com/favicon.ico
 // @description 黑暗模式 / 清爽模式：斗鱼虎牙 B 站 ________ <斗鱼>：抽奖、抄袭、循环弹幕，关键词回复 ____ 批量取关、直播时长、真实人数 ____ 暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、领取鱼塘（自动寻宝）、签到、自动维持亲密度 ________ <虎牙>：抄袭、循环弹幕 ____ 暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、领取宝箱 ________ <B 站>：暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、签到、领取舰长辣条
 // @author      H2P
@@ -153,7 +153,7 @@
 // @note        2020.07.19-V2.1.12      修复虎牙最高画质暂停 BUG，修复 B 站宽屏模式BUG，优化 B 站控制板大小
 // @note        2020.07.19-V2.1.13      修复 topic 为 lol 的房间的清爽模式白屏 BUG
 // @note        2020.07.20-V2.2.01      自动发弹幕修改分为本房间和所有房间
-// @note        2020.08.01-V2.2.02      斗鱼清爽模式优化；修复虎牙 id 为字母的房间脚本加载错误的 BUG
+// @note        2020.08.01-V2.2.02-03   斗鱼清爽模式优化；修复虎牙 id 为字母的房间脚本加载错误的 BUG
 // ==/UserScript==
 
 (() => {
@@ -1572,7 +1572,7 @@
         `;
         // 背景高度
         eleStyle.innerHTML += `
-          #bc6 { height: ${window.screen.height - 68}px!important; }
+          #bc6 { height: 1000px!important; }
           #root > div.bc-wrapper:last-child { display: none!important; }
         `;
         if (isDouyuTopic) {
