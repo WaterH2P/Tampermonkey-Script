@@ -168,7 +168,7 @@
       let item = Object.assign({}, itemPre, $LS.get(itemKey));
       for (let key in item) { if (!(key in itemPre)) { delete item[key]; } }
       localStorage.removeItem(itemKey);
-      $LS.set(itemKey, item);
+      localStorage.setItem(itemKey, JSON.stringify(item));
       return item;
     },
     set: (itemKey = '', item = {}) => { localStorage.setItem(itemKey, JSON.stringify(item)); },
@@ -177,6 +177,16 @@
   }
   const $INVL = {
     clear: (INVLID) => { clearInterval(INVLID); INVLID = null; }
+  }
+  const $DATE = {
+    today: `${new Date().getFullYear()}-${new Date().getMonth() + 1}-${new Date().getDate()}`,
+    timems: (date = new Date()) => date instanceof Date ? date.getTime() : new Date(date).getTime(),
+    times: (date = new Date()) => Number.parseInt(date instanceof Date ? date.getTime() / 1000 : new Date(date).getTime() / 1000),
+    format: (time = new Date().getTime()) => {
+      time = time < 946684800000 ? time * 1000 : time;
+      const date = new Date(time);
+      return `${date.getFullYear()}-${date.getMonth(time) + 1}-${date.getDate()}`
+    },
   }
   
   const $KEYCODE = {
@@ -1046,6 +1056,7 @@
     let INVL_render = setInterval(() => {
       if ($H2P('img#h2p-img-blackMode')) {
           $INVL.clear(INVL_render);
+          console.log('BlackMode 初始化完毕');
           resolve();
           return;
       }
@@ -1074,10 +1085,8 @@
     }, 500);
   })
   .then(() => {
-    document.addEventListener('keydown', (e) => {
-      // 黑暗模式快捷键
-      if (e.shiftKey && e.which == $KEYCODE.z) { $H2P('img#h2p-img-blackMode').click(); }
-    });
+    // 黑暗模式快捷键
+    document.addEventListener('keydown', (e) => { if (e.shiftKey && e.which == $KEYCODE.z) { $H2P('img#h2p-img-blackMode').click(); } });
 
     $H2P('img#h2p-img-blackMode').addEventListener('click', (event) => {
       config_clear.blackMode = !config_clear.blackMode;
@@ -1123,14 +1132,14 @@
     }, false);
   })
   .then(() => {
-    if (config_clear.BMGrey) { $H2P('input#h2p-input-blackMode-grey').checked = true; }
-    if (config_clear.BMBlack) { $H2P('input#h2p-input-blackMode-black').checked = true; }
-    if (config_clear.BMDIY) { $H2P('input#h2p-input-blackMode-DIY').checked = true; }
+    $H2P('input#h2p-input-blackMode-grey').checked  = config_clear.BMGrey;
+    $H2P('input#h2p-input-blackMode-black').checked = config_clear.BMBlack;
+    $H2P('input#h2p-input-blackMode-DIY').checked   = config_clear.BMDIY;
 
-    if (config_clear.BMBGDeep) { $H2P('input#h2p-input-blackMode-DIY-BG-deep').value = config_clear.BMBGDeep; }
-    if (config_clear.BMBGLight) { $H2P('input#h2p-input-blackMode-DIY-BG-light').value = config_clear.BMBGLight; }
-    if (config_clear.BMFontDeep) { $H2P('input#h2p-input-blackMode-DIY-font-deep').value = config_clear.BMFontDeep; }
-    if (config_clear.BMFontLight) { $H2P('input#h2p-input-blackMode-DIY-font-light').value = config_clear.BMFontLight; }
+    $H2P('input#h2p-input-blackMode-DIY-BG-deep').value = config_clear.BMBGDeep;
+    $H2P('input#h2p-input-blackMode-DIY-BG-light').value = config_clear.BMBGLight;
+    $H2P('input#h2p-input-blackMode-DIY-font-deep').value = config_clear.BMFontDeep;
+    $H2P('input#h2p-input-blackMode-DIY-font-light').value = config_clear.BMFontLight;
   })
 
 
@@ -1142,7 +1151,7 @@
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
 // 
-//                               清爽模式
+//                                                            清爽模式
 // 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
 
@@ -1836,6 +1845,7 @@
     let INVL_render = setInterval(() => {
       if ($H2P('img#h2p-img-clearMode')) {
         $INVL.clear(INVL_render);
+        console.log('clearMode 初始化完毕');
         resolve();
         return;
       }
@@ -1915,7 +1925,9 @@
   })
 
   function updateClearModeIcon () {
-    $H2P('img#h2p-img-clearMode').src = config_clear.clearMode ? (config_clear.blackMode ? backBase64.black : backBase64.white) : (config_clear.blackMode ? clearBase64.black : clearBase64.white);
+    $H2P('img#h2p-img-clearMode').src = config_clear.clearMode ? 
+                                        (config_clear.blackMode ? backBase64.black : backBase64.white) : 
+                                        (config_clear.blackMode ? clearBase64.black : clearBase64.white);
   }
 
   if (isBilibili && !isBilibiliLive) { return; }
@@ -1930,7 +1942,7 @@
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
 // 
-//                               取消关注
+//                                                            取消关注
 // 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
 
@@ -1949,9 +1961,7 @@
       let a_cancelFollow = document.createElement('a');
       a_cancelFollow.id = 'h2p-a-cancelFollow';
       a_cancelFollow.className = 'layout-Module-label';
-      a_cancelFollow.innerHTML = `
-        <strong>取消关注</strong>
-      `;
+      a_cancelFollow.innerHTML = `<strong>取消关注</strong>`;
       $H2P('div#filter-tab-expandable-wrapper').appendChild(a_cancelFollow);
     })
     .then(() => {
@@ -2019,11 +2029,8 @@
 // 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
 
-  // 用户拥有牌子的主播信息
-  let roomOfAnchorFan = undefined;
-
   let userInfo = {
-    nickName  : '',        // 昵称
+    nickName  : '',           // 昵称
     isAnchorFan : false,      // 是否拥有主播的粉丝牌
   };  
 
@@ -2054,12 +2061,14 @@
     roomInfo.id = regNums.exec($PAGE.href) ? regNums.exec($PAGE.href)[0] : $PAGE.href.split('/www.huya.com/').pop();
   }
 
-  if (isDouyu) {
-    const LSInfo = 'h2p-DY-config-info';
-    let config_info = JSON.parse(localStorage.getItem(LSInfo)) || {
-      showTs: {},
-    };
+  const LSInfo = 'h2p-DY-config-info';
+  let config_info = $LS.init(LSInfo, {
+    anchorFanUpdatedTime: '',
+    anchorFanRooms: {},
+    showTs: {},
+  });
 
+  if (isDouyu) {
     // 获取在线人数
     let urlId = isDouyuTopic ? $PAGE.href.split('=').pop() : window.location.pathname.split('/').pop();
     fetch(`https://bojianger.com/data/api/common/search.do?keyword=${urlId}`)
@@ -2084,7 +2093,7 @@
     let showTs = {};
     if (Array.isArray(config_info.showTs)) {
       config_info.showTs = {};
-      localStorage.setItem(LSInfo, JSON.stringify(config_info));
+      $LS.set(LSInfo, config_info);
     } else { showTs = config_info.showTs || {}; }
     let [showT, getT] = [0, 0];
     if (showTs[roomInfo.id]) {
@@ -2092,9 +2101,10 @@
       getT = showTs[roomInfo.id].getT;
     }
     // 获取时间 < 6h
-    if ((((new Date().getTime() / 1000) - getT) / 3600.0) < 6) {
+    if ((($DATE.times() - getT) / 3600.0) < 6) {
       roomInfo.showT = showT;
-      console.log(`Succeed getting anchor showTime : ${roomInfo.showT}.`);
+      console.log(`Succeed getting anchor showTime :`);
+      console.log($DATE.format(roomInfo.showT));
     } else {
       fetch('https://www.douyu.com/betard/' + roomInfo.id)
       .then(res => res.json())
@@ -2112,9 +2122,8 @@
               'showT' : roomInfo.showT,
               "getT" : Number.parseInt(new Date().getTime() / 1000)
             };
-            console.log(`Succeed getting anchor showTime : `);
-            console.log(config_info.showTs[roomInfo.id]);
-            localStorage.setItem(LSInfo, JSON.stringify(config_info));
+            console.log(`Succeed getting anchor showTime : ${config_info.showTs[roomInfo.id]}`);
+            $LS.set(LSInfo, config_info);
           } else { console.log('Fail to get anchor showTime.') }
         } catch (error) {
           console.log(error);
@@ -2134,38 +2143,43 @@
       }
     }
 
-    // 自动获取已有徽章的主播
-    new Promise((resolve, reject) => {
-      let iframe = document.createElement('iframe');
-      iframe.id = 'h2p-fansBadgeList';
-      iframe.style = 'display: none;'
-      iframe.src = '/member/cp/getFansBadgeList';
-      document.body.appendChild(iframe);
-      setTimeout(resolve, 250);
-    })
-    .then(() => {
-      let iframe = $H2P('iframe#h2p-fansBadgeList');
-      iframe.addEventListener('load', () => {
-        // 获取有粉丝牌的主播房间号
-        roomOfAnchorFan = {};
-        let idoc = iframe.contentWindow.document;
-        let ele_anchors = Array.from(idoc.querySelectorAll('table.aui_room_table.fans-badge-list > tbody > tr'));
-        for ( let i = 0; i < ele_anchors.length; i++ ) {
-          let ele = ele_anchors[i];
-          let anchorURL = ele.querySelector('td:nth-child(2)').querySelector('a').getAttribute('href');
-          let anchorName = ele.querySelector('td:nth-child(2)').querySelector('a').textContent;
-          let anchorRoom = ele.getAttribute('data-fans-room');
-          let anchorUp = Number(ele.querySelector('td:nth-child(4)').querySelector('span').textContent);
-          roomOfAnchorFan[anchorRoom] = {anchorName, anchorURL, anchorUp};
-        }
-        console.log('有粉丝牌的主播房间号');
-        console.log(roomOfAnchorFan);
-        let anchorRoom= $PAGE.href.split('/').pop();
-        userInfo.isAnchorFan = anchorRoom in roomOfAnchorFan;
-        setTimeout(() => { $H2P('iframe#h2p-fansBadgeList').remove(); }, 2000)
-      });
-    })
-    .catch(error => console.log(error));
+    // 自动获取已有粉丝牌的主播
+    if (config_info.anchorFanUpdatedTime !== $DATE.today) {
+      new Promise((resolve, reject) => {
+        let iframe = document.createElement('iframe');
+        iframe.id = 'h2p-fansBadgeList';
+        iframe.style = 'display: none;'
+        iframe.src = '/member/cp/getFansBadgeList';
+        document.body.appendChild(iframe);
+        setTimeout(resolve, 250);
+      })
+      .then(() => {
+        let iframe = $H2P('iframe#h2p-fansBadgeList');
+        iframe.addEventListener('load', () => {
+          // 获取有粉丝牌的主播房间号
+          config_info.anchorFanRooms = {};
+          let idoc = iframe.contentWindow.document;
+          let ele_anchors = Array.from(idoc.querySelectorAll('table.aui_room_table.fans-badge-list > tbody > tr'));
+          for ( let i = 0; i < ele_anchors.length; i++ ) {
+            let ele = ele_anchors[i];
+            let anchorURL = ele.querySelector('td:nth-child(2)').querySelector('a').getAttribute('href');
+            let anchorName = ele.querySelector('td:nth-child(2)').querySelector('a').textContent;
+            let anchorRoom = ele.getAttribute('data-fans-room');
+            let anchorUp = Number(ele.querySelector('td:nth-child(4)').querySelector('span').textContent);
+            config_info.anchorFanRooms[anchorRoom] = {anchorName, anchorURL, anchorUp};
+          }
+          config_info.anchorFanUpdatedTime = $DATE.today;
+          $LS.set(LSInfo, config_info);
+
+          console.log('有粉丝牌的主播房间号');
+          console.log(config_info.anchorFanRooms);
+          let anchorRoom= $PAGE.href.split('/').pop();
+          userInfo.isAnchorFan = anchorRoom in config_info.anchorFanRooms;
+          setTimeout(() => { $H2P('iframe#h2p-fansBadgeList').remove(); }, 2000);
+        });
+      })
+      .catch(error => console.log(error));
+    } else { console.log('今日已获取已有粉丝牌的主播'); }
 
     new Promise((resolve, reject) => {
       // 主播热度、在线人数、直播时长
@@ -2462,24 +2476,13 @@
   })
   .then(() => {
     $H2P('div#div-DYScriptTab').addEventListener('click', (event) => {
-      // 发弹幕
-      if (event.target.id === 'h2p-div-tab-bar') {
-        viewShow_bar = true;
-        viewShow_config = false;
-        $H2P('div#h2p-div-bar').style.display = '';
-        $H2P('div#h2p-div-config').style.display = 'none';
-        $H2P('div#h2p-div-tab-bar').style.backgroundColor = '#DDDDDD';
-        $H2P('div#h2p-div-tab-config').style.backgroundColor = '#f5f5f5';
-      }
-      // 自动化设置
-      else if (event.target.id === 'h2p-div-tab-config') {
-        viewShow_bar = false;
-        viewShow_config = true;
-        $H2P('div#h2p-div-bar').style.display = 'none';
-        $H2P('div#h2p-div-config').style.display = '';
-        $H2P('div#h2p-div-tab-bar').style.backgroundColor = '#f5f5f5';
-        $H2P('div#h2p-div-tab-config').style.backgroundColor = '#DDDDDD';
-      }
+      const target = event.target;
+      viewShow_bar = target.id.endsWith('-bar');
+      viewShow_config = target.id.endsWith('-config');
+      $H2P('div#h2p-div-bar').style.display = viewShow_bar ? '' : 'none';
+      $H2P('div#h2p-div-config').style.display = viewShow_config ? '' : 'none';
+      $H2P('div#h2p-div-tab-bar').style.backgroundColor = viewShow_bar ? '#DDDDDD' : '#f5f5f5';
+      $H2P('div#h2p-div-tab-config').style.backgroundColor = viewShow_config ? '#DDDDDD' : '#f5f5f5';
     }, false);
   });
 
@@ -2514,8 +2517,6 @@
   });
 
   config_chat.isSendNow = config_chat.sendRooms.includes(roomInfo.id);
-  console.log(config_chat);
-
   let [Chat, INVL_SendBar, INVL_ShowCD] = [undefined, undefined, undefined];
 
   let invl  = 0;            // 间隔时间
@@ -2689,7 +2690,7 @@
       } else if (target.id === 'h2p-input-bar-isLuck') {
         config_chat.isLuck = target.checked;
       }
-      localStorage.setItem(LSChat, JSON.stringify(config_chat));
+      $LS.set(LSChat, config_chat);
     }, false)
       
     // 间隔最小值
@@ -2698,7 +2699,7 @@
     eleInvlStart.addEventListener('focusout', () => {
       eleInvlStart.value = Math.max(eleInvlStart.value, 3);
       config_chat.invlStart = eleInvlStart.value;
-      localStorage.setItem(LSChat, JSON.stringify(config_chat));
+      $LS.set(LSChat, config_chat);
     });
 
     // 间隔最大值
@@ -2707,7 +2708,7 @@
     eleInvlEnd.addEventListener('focusout', () => {
       eleInvlEnd.value = Math.max(eleInvlEnd.value, Number(eleInvlStart.value) + 1, 4);
       config_chat.invlEnd = eleInvlEnd.value;
-      localStorage.setItem(LSChat, JSON.stringify(config_chat));
+      $LS.set(LSChat, config_chat);
     });
 
     // 抽奖弹幕最大次数
@@ -2716,14 +2717,14 @@
     eleBarLuckTime.addEventListener('focusout', () => {
       eleBarCopyInvl.value = Math.max(eleBarCopyInvl.value, 1);
       config_chat.luckTime = Number(eleBarLuckTime.value);
-      localStorage.setItem(LSChat, JSON.stringify(config_chat));
+      $LS.set(LSChat, config_chat);
     });
 
     // 添加关键词回复
     let eleAddKeyRe = $H2P('button#h2p-btn-addKeyRe');
     eleAddKeyRe.addEventListener('click', () => {
       config_chat.keyReBar.push({key: 'default', re: 'default'});
-      localStorage.setItem(LSChat, JSON.stringify(config_chat));
+      $LS.set(LSChat, config_chat);
       $H2P('select#h2p-select-keyRe').options.add(new Option('default', 'default'));
       $H2P('select#h2p-select-keyRe').selectedIndex = config_chat.keyReBar.length - 1;
       $H2P('input#h2p-input-key').value = $H2P('select#h2p-select-keyRe').selectedOptions[0].textContent;
@@ -2734,7 +2735,7 @@
     let eleDelKeyRe = $H2P('button#h2p-btn-delKeyRe');
     eleDelKeyRe.addEventListener('click', () => {
       config_chat.keyReBar.splice($H2P('select#h2p-select-keyRe').selectedIndex, 1);
-      localStorage.setItem(LSChat, JSON.stringify(config_chat));
+      $LS.set(LSChat, config_chat);
       $H2P('select#h2p-select-keyRe').options.remove($H2P('select#h2p-select-keyRe').selectedIndex);
       $H2P('input#h2p-input-key').value = $H2P('select#h2p-select-keyRe').selectedOptions[0].textContent;
       $H2P('input#h2p-input-re').value = $H2P('select#h2p-select-keyRe').selectedOptions[0].value;
@@ -2759,7 +2760,7 @@
         config_chat.keyReBar[$H2P('select#h2p-select-keyRe').selectedIndex].key = eleKey.value;
         $H2P('select#h2p-select-keyRe').selectedOptions[0].textContent = eleKey.value;
       }
-      localStorage.setItem(LSChat, JSON.stringify(config_chat));
+      $LS.set(LSChat, config_chat);
     });
 
     // 修改回复
@@ -2774,7 +2775,7 @@
         config_chat.keyReBar[$H2P('select#h2p-select-keyRe').selectedIndex].re = eleRe.value;
         $H2P('select#h2p-select-keyRe').selectedOptions[0].value = eleRe.value;
       }
-      localStorage.setItem(LSChat, JSON.stringify(config_chat));
+      $LS.set(LSChat, config_chat);
     });
 
     // 抄袭弹幕最大间隔
@@ -2783,7 +2784,7 @@
     eleBarCopyInvl.addEventListener('focusout', () => {
       eleBarCopyInvl.value = Math.min(eleBarCopyInvl.value, 200);
       config_chat.copyInvl = Number(eleBarCopyInvl.value);
-      localStorage.setItem(LSChat, JSON.stringify(config_chat));
+      $LS.set(LSChat, config_chat);
     });
 
     // 循环弹幕
@@ -2791,7 +2792,7 @@
     eleLoop.addEventListener('focusout', () => {
     if (eleLoop.value && eleLoop.value.replace(/\s/g, '')) {
       config_chat.loopBar = eleLoop.value.split('\n');
-      localStorage.setItem(LSChat, JSON.stringify(config_chat));
+      $LS.set(LSChat, config_chat);
     }
     });
 
@@ -2830,7 +2831,7 @@
         let index = config_chat.sendRooms.indexOf(roomInfo.id);
         config_chat.sendRooms = [...config_chat.sendRooms.slice(0, index), ...config_chat.sendRooms.slice(index+1)];
       }
-      localStorage.setItem(LSChat, JSON.stringify(config_chat));
+      $LS.set(LSChat, config_chat);
     }, false);
 
     // 发送所有按钮
@@ -2848,7 +2849,7 @@
       if ((config_chat.isSend && !config_chat.isSendNow) || (!config_chat.isSend && config_chat.isSendNow)) {
         eleSend.click();
       }
-      localStorage.setItem(LSChat, JSON.stringify(config_chat));
+      $LS.set(LSChat, config_chat);
     }, false);
   })
   .catch(error => console.log(error))
@@ -3061,7 +3062,7 @@
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
 // 
-//                                 快捷键设置
+//                                                            快捷键设置
 // 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
 
@@ -3120,7 +3121,7 @@
   
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
 // 
-//                                 自动化设置
+//                                                            自动化设置
 // 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
 
@@ -3296,12 +3297,10 @@
 
   // 自动领取观看鱼丸
   let INVL_autoGetFB = undefined;
-  let isHuntTreasure = false;
   let auto_getFB = () => {
     if (INVL_autoGetFB) { return; }
+    let isHuntTreasure = config_tool.findTreasure === $DATE.today;
     if (isDouyu) {
-      let today = '' + new Date().getFullYear() + (new Date().getMonth() + 1) + new Date().getDate();
-      isHuntTreasure = config_tool.findTreasure === today;
       INVL_autoGetFB = setInterval(() => {
         if (!isHuntTreasure) {
           console.log('开始寻宝');
@@ -3324,8 +3323,8 @@
               let count = Number.parseInt($H2P('div.FTP-userInfo > span').textContent.split('\/')[0]);
               if (count === 3) {
                 isHuntTreasure = true;
-                config_tool.findTreasure = today;
-                localStorage.setItem(LSConfig, JSON.stringify(config_tool));
+                config_tool.findTreasure = $DATE.today;
+                $LS.set(LSConfig, config_tool);
                 console.log(`寻宝完毕`);
               } else {
                 console.log(`寻宝第 ${count+1} 次`);
@@ -3372,17 +3371,23 @@
         }
       }, 5000);
     } else if (isHuya) {
-      INVL_autoGetFB = setInterval(() => {
-        if ($H2P('div.chest-award-count') && Number($H2P('div.chest-award-count').textContent) > 0) {
-          let eles = $H2P('p.player-box-stat3', false).filter(ele => ele.style.visibility == 'visible');
-          for (let i = 0; i < eles.length; i++) {
-            setTimeout(() => { eles[i].click(); }, 500 * i)
+      if (!isHuntTreasure) {
+        INVL_autoGetFB = setInterval(() => {
+          if ($H2P('div.chest-award-count') && Number($H2P('div.chest-award-count').textContent) > 0) {
+            let eles = $H2P('p.player-box-stat3', false).filter(ele => ele.style.visibility == 'visible');
+            for (let i = 0; i < eles.length; i++) {
+              setTimeout(() => { eles[i].click(); }, 500 * i)
+            }
+          } else if ($H2P('p.player-box-stat4', false).filter(ele => ele.style.visibility == 'visible').length == 6) {
+            $INVL.clear(INVL_autoGetFB);
+            isHuntTreasure = true;
+            config_tool.findTreasure = $DATE.today;
+            $LS.set(LSConfig, config_tool);
           }
-        } else if ($H2P('p.player-box-stat4', false).filter(ele => ele.style.visibility == 'visible').length == 6) {
-          $INVL.clear(INVL_autoGetFB);
-        }
-      }, 5000);
+        }, 5000);
+      }
     } else if (isBilibiliLive) {
+      // 领取辣条
       INVL_autoGetFB = setInterval(() => {
         if ($H2P('div.function-bar.draw')) {
           $H2P('div.function-bar.draw').click();
@@ -3447,7 +3452,8 @@
       .then(res => {
         if (res && 'error' in res && res.error === 0) {
           console.log('成功赠送主播 : '+ roomId + ' 一个荧光棒');
-          roomOfAnchorFan[roomId].anchorUp += 1;
+          config_info.anchorFanRooms[roomId].anchorUp += 1;
+          $LS.set(LSConfig, config_info);
         } else {
           console.log('赠送' + roomId + '失败 : ' + res.msg);
         }
@@ -3455,14 +3461,17 @@
     }
 
     let INVL_anchorUp = setInterval(() => {
-      if (roomOfAnchorFan) {
-        let roomIds = Object.keys(roomOfAnchorFan);
+      if (config_info.anchorFanUpdatedTime === $DATE.today) {
+        let roomIds = Object.keys(config_info.anchorFanRooms);
         for (let i = 0; i < roomIds.length; i++) {
           let roomId = roomIds[i];
-          if (roomOfAnchorFan[roomId].anchorUp === 0) { setTimeout(() => { donateYGB(roomId); }, (i+1) * 2000); }
+          if (config_info.anchorFanRooms[roomId].anchorUp === 0) { setTimeout(() => { donateYGB(roomId); }, (i+1) * 2000); }
         }
         $INVL.clear(INVL_anchorUp);
         console.log('启动完毕 : 赠送荧光棒');
+      } else {
+        console.log('今日已赠送荧光棒');
+        $INVL.clear(INVL_anchorUp);
       }
     }, 1000);
   }
@@ -3698,7 +3707,7 @@
         config_tool.pausePlay = !config_tool.pausePlay;
         auto_pausePlay();
       }
-      localStorage.setItem(LSConfig, JSON.stringify(config_tool));
+      $LS.set(LSConfig, config_tool);
     }, false);
   })
   .then(() => {
