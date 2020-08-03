@@ -1574,7 +1574,9 @@
           }
         } else if (isDouyuFollow) {
           eleStyle.innerHTML += `
-            .Prompt-container { display: none!important; }
+            section.layout-Banner,
+            .Prompt-container,
+            .AdView { display: none!important; }
           `;
         }
       } else if (isBilibili) {
