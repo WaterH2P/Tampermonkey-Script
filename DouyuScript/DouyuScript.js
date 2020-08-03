@@ -3453,7 +3453,7 @@
         if (res && 'error' in res && res.error === 0) {
           console.log('成功赠送主播 : '+ roomId + ' 一个荧光棒');
           config_info.anchorFanRooms[roomId].anchorUp += 1;
-          $LS.set(LSConfig, config_info);
+          $LS.set(LSInfo, config_info);
         } else {
           console.log('赠送' + roomId + '失败 : ' + res.msg);
         }
