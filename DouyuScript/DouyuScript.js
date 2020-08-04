@@ -1603,6 +1603,11 @@
             .rec-list .video-page-card:nth-child(n+7) { display: none; }
             .rec-list .video-page-card:nth-child(n+21) { display: inherit; }
           `;
+          // 广告
+          eleStyle.innerHTML += `
+            div#slide_ad,
+            div#right-bottom-banner { display: none!important; }
+          `;
         } else if (isBilibiliLive) {
           // 视频 logo
           eleStyle.innerHTML += `
