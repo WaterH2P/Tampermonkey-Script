@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        H2P: 斗鱼虎牙B站小工具
 // @namespace   http://tampermonkey.net/
-// @version     2.2.6
+// @version     2.2.7
 // @icon        http://www.douyutv.com/favicon.ico
 // @description 黑暗模式 / 清爽模式：斗鱼虎牙 B 站 ________ <斗鱼>：抽奖、抄袭、循环弹幕，关键词回复 ____ 批量取关、直播时长、真实人数 ____ 暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、领取鱼塘（自动寻宝）、签到、自动维持亲密度 ________ <虎牙>：抄袭、循环弹幕 ____ 暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、领取宝箱 ________ <B 站>：暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、签到、领取舰长辣条
 // @author      H2P
@@ -25,11 +25,23 @@
 // @match       *://*.bilibili.com/ranking?*
 // @match       *://live.bilibili.com/*
 // @match       *://*.huya.com/*
-// @note        2020.08.06-V2.2.06      兼容友商拉高
+// @note        2020.08.06-V2.2.07      鱼粮不足会取消寻宝
 // ==/UserScript==
 
 (() => {
   'use strict';
+
+  // 在字符串前（后）添加 0
+  function add0(s = '', len = 0, isAddFront = true) {
+    s = s.toString();
+    while (s.length < len) { s = isAddFront ? '0' + s : s + '0'; }
+    return s;
+  }
+  // 返回毫秒
+  function timeMS(num = 0) {
+    num = Number.parseInt(num);
+    return num < 946684800000 ? num * 1000 : num;
+  }
 
   const $H2P  = (xpath = 'body', queryOneElement = true) => queryOneElement ? document.querySelector(xpath) : Array.from(document.querySelectorAll(xpath));
   const $PAGE = {
@@ -50,17 +62,29 @@
   const $INVL = {
     clear: (INVLID) => { clearInterval(INVLID); INVLID = null; }
   }
-  const $DATE = {
-    today: `${new Date().getFullYear()}-${new Date().getMonth() + 1}-${new Date().getDate()}`,
-    timems: (date = new Date()) => date instanceof Date ? date.getTime() : new Date(date).getTime(),
-    times: (date = new Date()) => Number.parseInt(date instanceof Date ? date.getTime() / 1000 : new Date(date).getTime() / 1000),
-    format: (time = new Date().getTime()) => {
-      time = time < 946684800000 ? time * 1000 : time;
-      const date = new Date(time);
-      return `${date.getFullYear()}-${date.getMonth(time) + 1}-${date.getDate()}`
-    },
-  }
   
+  const $TIME   = {
+    hms: (time = 0) => {
+      let h = Number.parseInt(time / 3600000);
+      let m = Number.parseInt(time % 3600000 / 60000);
+      let s = Number.parseInt(time % 3600000 % 60000 / 1000);
+      return {
+        h: add0(h, 2),
+        m: add0(m, 2),
+        s: add0(s, 2)
+      }
+    }
+  }
+
+  // return millisecond
+  Date.prototype.$timems = Date.prototype.getTime;
+  // return second
+  Date.prototype.$times = function() { return Number.parseInt(this.getTime() / 1000); }
+  // format time: yyyy-MM-dd hh-mm-ss
+  Date.prototype.$formatTime = function() { return `${this.getFullYear()}-${add0(this.getMonth() + 1, 2)}-${add0(this.getDate(), 2)} ${add0(this.getHours(), 2)}:${add0(this.getMinutes(), 2)}:${add0(this.getSeconds(), 2)}`; }
+  // format date: yyyy-MM-dd
+  Date.prototype.$formatDate = function() { return `${this.getFullYear()}-${add0(this.getMonth() + 1, 2)}-${add0(this.getDate(), 2)}`; }
+
   const $KEYCODE = {
     'a': 65, 'b': 66, 'c': 67, 'd': 68, 'e': 69, 'f': 70, 'g': 71,
     'h': 72, 'i': 73, 'j': 74, 'k': 75, 'l': 76, 'm': 77, 'n': 78,
@@ -928,7 +952,7 @@
     let INVL_render = setInterval(() => {
       if ($H2P('img#h2p-img-blackMode')) {
           $INVL.clear(INVL_render);
-          console.log('BlackMode 初始化完毕');
+          console.log('启动完毕 : BlackMode 初始化');
           resolve();
           return;
       }
@@ -1724,7 +1748,7 @@
     let INVL_render = setInterval(() => {
       if ($H2P('img#h2p-img-clearMode')) {
         $INVL.clear(INVL_render);
-        console.log('clearMode 初始化完毕');
+        console.log('启动完毕 : clearMode 初始化');
         resolve();
         return;
       }
@@ -1961,7 +1985,7 @@
           let res = JSON.parse(JSON.stringify(res));
           roomInfo.online = Number(res.split('online":')[1].split(',')[0]);
         }
-        console.log(`Succeed getting online : ${roomInfo.online}.`);
+        console.log(`Succeed getting online: ${roomInfo.online}`);
       } catch (error) {
         console.log(error);
         console.log('Fail to get online');
@@ -1976,14 +2000,14 @@
     } else { showTs = config_info.showTs || {}; }
     let [showT, getT] = [0, 0];
     if (showTs[roomInfo.id]) {
-      showT = showTs[roomInfo.id].showT;
-      getT = showTs[roomInfo.id].getT;
+      showT = timeMS(showTs[roomInfo.id].showT);
+      getT = timeMS(showTs[roomInfo.id].getT);
     }
     // 获取时间 < 6h
-    if ((($DATE.times() - getT) / 3600.0) < 6) {
+    if (((Date.now() - getT) / 3600000.0) < 6) {
       roomInfo.showT = showT;
-      console.log(`Succeed getting anchor showTime :`);
-      console.log($DATE.format(roomInfo.showT));
+      roomInfo.getT = getT;
+      console.log(`Succeed getting anchor showTime: ${new Date(showT).$formatTime()}`);
     } else {
       fetch('https://www.douyu.com/betard/' + roomInfo.id)
       .then(res => res.json())
@@ -1991,17 +2015,17 @@
         try {
           if (res) {
             if (res.cache_time) {
-              roomInfo.showT = Number.parseInt(res.cache_time);
+              roomInfo.showT = timeMS(res.cache_time);
             } else {
               let r = res.split('"cache_time":')[1];
-              let l = r.substr(0, r.indexOf(','));
-              roomInfo.showT = Number.parseInt(l);
+              let showT = r.substr(0, r.indexOf(','));
+              roomInfo.showT = timeMS(showT);
             }
             config_info.showTs[roomInfo.id] = {
               'showT' : roomInfo.showT,
-              "getT" : Number.parseInt(new Date().getTime() / 1000)
+              "getT" : Date.now()
             };
-            console.log(`Succeed getting anchor showTime : ${config_info.showTs[roomInfo.id]}`);
+            console.log(`Succeed getting anchor showTime: ${new Date(roomInfo.showT).format()}`);
             $LS.set(LSInfo, config_info);
           } else { console.log('Fail to get anchor showTime.') }
         } catch (error) {
@@ -2023,7 +2047,7 @@
     }
 
     // 自动获取已有粉丝牌的主播
-    if (config_info.anchorFanUpdatedTime !== $DATE.today) {
+    if (config_info.anchorFanUpdatedTime !== new Date().$formatDate()) {
       new Promise((resolve, reject) => {
         let iframe = document.createElement('iframe');
         iframe.id = 'h2p-fansBadgeList';
@@ -2047,7 +2071,7 @@
             let anchorUp = Number(ele.querySelector('td:nth-child(4)').querySelector('span').textContent);
             config_info.anchorFanRooms[anchorRoom] = {anchorName, anchorURL, anchorUp};
           }
-          config_info.anchorFanUpdatedTime = $DATE.today;
+          config_info.anchorFanUpdatedTime = new Date().$formatDate();
           $LS.set(LSInfo, config_info);
 
           console.log('有粉丝牌的主播房间号');
@@ -2126,22 +2150,15 @@
         if (anchorHot > 9999) { str_anchorHot = parseInt(anchorHot/10000) + 'w'; }
         $H2P('a#a-anchorHot > div.Title-anchorText').textContent = str_anchorHot;
         
-        if (roomInfo.showT > 0) {
-          let showT = Number.parseInt((new Date().getTime() / 1000) - roomInfo.showT) / 3600.0;
-          let h = Number.parseInt(showT);
-          let m = Number.parseInt((showT - h) * 60);
-          let s = Number.parseInt(((showT - h) * 60 - m) * 60);
+        if (roomInfo.showT) {
+          let showT = Date.now() - roomInfo.showT;
+          let { h, m, s } = $TIME.hms(showT);
+          $H2P('a#a-anchorShowT > div.Title-anchorText').textContent = `${h}:${m}:${s}`;
           // 设置直播时长
           setInterval(() => {
-            s += 1;
-            if (s >= 60) { m += 1; s = 0; }
-            if (m >= 60) { h += 1; m = 0; }
-            let strShowT = `${h}:`;
-            if (m >= 10) { strShowT += m + ':'; }
-            else { strShowT += '0' + m + ':'; }
-            if (s >= 10) { strShowT += s; }
-            else { strShowT += '0' + s; }
-            $H2P('a#a-anchorShowT > div.Title-anchorText').textContent = strShowT;
+            showT += 1000;
+            let { h, m, s } = $TIME.hms(showT);
+            $H2P('a#a-anchorShowT > div.Title-anchorText').textContent = `${h}:${m}:${s}`;
           }, 1000);
         }
         // 直播热度和在线人数
@@ -3184,7 +3201,7 @@
   let INVL_autoGetFB = undefined;
   let auto_getFB = () => {
     if (INVL_autoGetFB) { return; }
-    let isHuntTreasure = config_tool.findTreasure === $DATE.today;
+    let isHuntTreasure = config_tool.findTreasure === new Date().$formatDate();
     if (isDouyu) {
       INVL_autoGetFB = setInterval(() => {
         if (!isHuntTreasure) {
@@ -3206,14 +3223,23 @@
           .then(() => {
             if ($H2P('div.FTP-userInfo > span')) {
               let count = Number.parseInt($H2P('div.FTP-userInfo > span').textContent.split('\/')[0]);
-              if (count === 3) {
-                isHuntTreasure = true;
-                config_tool.findTreasure = $DATE.today;
-                $LS.set(LSConfig, config_tool);
-                console.log(`寻宝完毕`);
-              } else {
-                console.log(`寻宝第 ${count+1} 次`);
-                $H2P('div.FTP-turntableStartBtn').click();
+              let fishFood = Number.parseInt($H2P('div.FTP-userInfo > span:last-child').textContent.split('：')[1]);
+              if (!isNaN(count) && !isNaN(fishFood)) {
+                if (fishFood < 60) {
+                  isHuntTreasure = true;
+                  console.log(`鱼粮不足: ${fishFood}，本网页取消寻宝`);
+                }
+                else {
+                  if (count === 3) {
+                    isHuntTreasure = true;
+                    config_tool.findTreasure = new Date().$formatDate();
+                    $LS.set(LSConfig, config_tool);
+                    console.log(`寻宝完毕`);
+                  } else {
+                    console.log(`寻宝第 ${count+1} 次`);
+                    $H2P('div.FTP-turntableStartBtn').click();
+                  }
+                }
               }
             }
           })
@@ -3266,7 +3292,7 @@
           } else if ($H2P('p.player-box-stat4', false).filter(ele => ele.style.visibility == 'visible').length == 6) {
             $INVL.clear(INVL_autoGetFB);
             isHuntTreasure = true;
-            config_tool.findTreasure = $DATE.today;
+            config_tool.findTreasure = new Date().$formatDate();
             $LS.set(LSConfig, config_tool);
           }
         }, 5000);
@@ -3346,7 +3372,7 @@
     }
 
     let INVL_anchorUp = setInterval(() => {
-      if (config_info.anchorFanUpdatedTime === $DATE.today) {
+      if (config_info.anchorFanUpdatedTime === new Date().$formatDate()) {
         let roomIds = Object.keys(config_info.anchorFanRooms);
         for (let i = 0; i < roomIds.length; i++) {
           let roomId = roomIds[i];
