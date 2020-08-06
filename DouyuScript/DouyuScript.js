@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        H2P: 斗鱼虎牙B站小工具
 // @namespace   http://tampermonkey.net/
-// @version     2.2.5
+// @version     2.2.6
 // @icon        http://www.douyutv.com/favicon.ico
 // @description 黑暗模式 / 清爽模式：斗鱼虎牙 B 站 ________ <斗鱼>：抽奖、抄袭、循环弹幕，关键词回复 ____ 批量取关、直播时长、真实人数 ____ 暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、领取鱼塘（自动寻宝）、签到、自动维持亲密度 ________ <虎牙>：抄袭、循环弹幕 ____ 暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、领取宝箱 ________ <B 站>：暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、签到、领取舰长辣条
 // @author      H2P
@@ -25,7 +25,7 @@
 // @match       *://*.bilibili.com/ranking?*
 // @match       *://live.bilibili.com/*
 // @match       *://*.huya.com/*
-// @note        2020.08.05-V2.2.05      斗鱼直播人数显示时，下调周榜及弹幕位置
+// @note        2020.08.06-V2.2.06      兼容友商拉高
 // ==/UserScript==
 
 (() => {
@@ -2100,8 +2100,8 @@
       `;
       let eleStyle = document.createElement('style');
       eleStyle.innerHTML += `
-        .layout-Player-rank { top: 70px!important; }
-        #js-player-barrage { top: 287px!important; }
+        .layout-Player-rank { top: 70px; }
+        #js-player-barrage { top: 287px; }
       `;
 
       let setINVL_wait_div_announce = setInterval(() => {
