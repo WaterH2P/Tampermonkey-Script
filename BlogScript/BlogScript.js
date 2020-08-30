@@ -57,6 +57,7 @@
     else if (isCSDNSearch) {
       // 右侧边栏
       eleStyle.innerHTML += `
+        .con-l-left { width: auto!important; }
         .con-r { display: none!important; }
         @media screen and (min-width: 900px) {
           .con-l { width: 100%; }
