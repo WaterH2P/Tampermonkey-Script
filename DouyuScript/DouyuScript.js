@@ -44,9 +44,6 @@
   }
 
   const $H2P  = (xpath = 'body', queryOneElement = true) => queryOneElement ? document.querySelector(xpath) : Array.from(document.querySelectorAll(xpath));
-  const $PAGE = {
-    href: window.location.href,
-  };
   const $LS   = {
     init: (itemKey = '', itemPre = {}) => {
       let item = Object.assign({}, itemPre, $LS.get(itemKey));
@@ -92,19 +89,19 @@
     'u': 85, 'v': 86, 'w': 87, 'x': 88, 'y': 89, 'z': 90,
   }
 
-  const isDouyu         = $PAGE.href.includes('douyu.com');
-  const isDouyuTopic    = $PAGE.href.startsWith('https://www.douyu.com/topic/');
-  const isDouyuFollow   = $PAGE.href.startsWith('https://www.douyu.com/directory/myFollow');
+  const isDouyu         = location.href.includes('douyu.com');
+  const isDouyuTopic    = location.href.startsWith('https://www.douyu.com/topic/');
+  const isDouyuFollow   = location.href.startsWith('https://www.douyu.com/directory/myFollow');
     
-  const isBilibili      = $PAGE.href.includes('bilibili.com');
-  const isBilibiliHome  = $PAGE.href === 'https://www.bilibili.com' || $PAGE.href === 'https://www.bilibili.com/' || $PAGE.href.startsWith('https://www.bilibili.com/?');
-  const isBilibiliVideo = $PAGE.href.startsWith('https://www.bilibili.com/video/');
-  const isBilibiliAct   = $PAGE.href.startsWith('https://t.bilibili.com/');
-  const isBilibiliRank  = $PAGE.href.startsWith('https://www.bilibili.com/ranking?');
-  const isBilibiliLive  = $PAGE.href.startsWith('https://live.bilibili.com/');
+  const isBilibili      = location.href.includes('bilibili.com');
+  const isBilibiliHome  = location.href === 'https://www.bilibili.com' || location.href === 'https://www.bilibili.com/' || location.href.startsWith('https://www.bilibili.com/?');
+  const isBilibiliVideo = location.href.startsWith('https://www.bilibili.com/video/');
+  const isBilibiliAct   = location.href.startsWith('https://t.bilibili.com/');
+  const isBilibiliRank  = location.href.startsWith('https://www.bilibili.com/ranking?');
+  const isBilibiliLive  = location.href.startsWith('https://live.bilibili.com/');
 
-  const isHuya          = $PAGE.href.includes('huya.com');
-  const isHuyaFollow    = $PAGE.href.includes('huya.com/myfollow');
+  const isHuya          = location.href.includes('huya.com');
+  const isHuyaFollow    = location.href.includes('huya.com/myfollow');
 
 
 
@@ -1453,7 +1450,7 @@
           #root > div.bc-wrapper:last-child { display: none!important; }
         `;
         if (isDouyuTopic) {
-          if ($PAGE.href.includes('lolylyx')) {
+          if (location.href.includes('lolylyx')) {
             eleStyle.innerHTML += `
               div#root > div.wm-general:nth-child(4) { margin-top: 70px; }
               div#root > div.wm-general:nth-child(3),
@@ -1961,7 +1958,7 @@
   if (regNums.test($H2P('head > title').textContent)) {
     roomInfo.id = regNums.exec($H2P('head > title').textContent)[0];
   } else {
-    roomInfo.id = regNums.exec($PAGE.href) ? regNums.exec($PAGE.href)[0] : $PAGE.href.split('/www.huya.com/').pop();
+    roomInfo.id = regNums.exec(location.href) ? regNums.exec(location.href)[0] : location.href.split('/www.huya.com/').pop();
   }
 
   const LSInfo = 'h2p-DY-config-info';
@@ -1973,7 +1970,7 @@
 
   if (isDouyu) {
     // 获取在线人数
-    let urlId = isDouyuTopic ? $PAGE.href.split('=').pop() : roomInfo.id;
+    let urlId = isDouyuTopic ? location.href.split('=').pop() : roomInfo.id;
     fetch(`https://bojianger.com/data/api/common/search.do?keyword=${urlId}`)
     .then(res => res.json())
     .then(res => {
@@ -2076,7 +2073,7 @@
 
           console.log('有粉丝牌的主播房间号');
           console.log(config_info.anchorFanRooms);
-          let anchorRoom= $PAGE.href.split('/').pop();
+          let anchorRoom= location.href.split('/').pop();
           userInfo.isAnchorFan = anchorRoom in config_info.anchorFanRooms;
           setTimeout(() => { $H2P('iframe#h2p-fansBadgeList').remove(); }, 2000);
         });
@@ -3396,7 +3393,7 @@
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
 // 
-//                               脚本自动化配置界面
+//                                                        脚本自动化配置界面
 // 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
 
@@ -3635,4 +3632,77 @@
     if (config_tool.pausePlay) { $H2P('button#h2p-btn-config-pausePlay').classList.add('h2p-bg-open'); }
   })
   .catch(error => { console.log(error); })
+
+
+
+
+
+
+
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
+// 
+//                                                        通知栏
+// 
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
+
+  const notify = (() => {
+    const style_notify = document.createElement('style');
+    style_notify.id = 'h2p-style-notify';
+    style_notify.innerHTML = `
+      #h2p-div-notify-container {
+        position: fixed;
+        width: 280px;
+        bottom: 20px;
+        right: 20px;
+        overflow: hidden;
+        z-index: 9999;
+      }
+
+      .h2p-div-notify-item {
+        position: relative;
+        width: 250px;
+        height: 25px;
+        right: -280px;
+        padding: 10px 15px;
+        margin: 10px 0;
+        border-radius: 5px;
+        background-color: bisque;
+        display: flex;
+        align-items: center;
+        transition: left 1.5s, right 1.5s;
+      }
+
+      .h2p-div-notify-item-in {
+        right: 0;
+      }
+    `;
+    document.body.appendChild(style_notify);
+
+    const div_notify = document.createElement('div');
+    div_notify.id = 'h2p-div-notify-container';
+    document.body.appendChild(div_notify);
+
+    function createNotify(msg = '') {
+      const div_notify_item = document.createElement('div');
+      div_notify_item.id = `h2p-div-notify-${Math.floor(Math.random() * 100000000)}`;
+      div_notify_item.classList.add('h2p-div-notify-item');
+      div_notify_item.innerHTML = msg;
+      $H2P('div#h2p-div-notify-container').appendChild(div_notify_item);
+
+      setTimeout((id) => {
+        $H2P(`#${id}`).classList.add('h2p-div-notify-item-in');
+        setTimeout(() => {
+          $H2P(`#${id}`).classList.remove('h2p-div-notify-item-in');
+          setTimeout(() => {
+            $H2P('div#h2p-div-notify-container').removeChild($H2P(`#${id}`));
+          }, 1500);
+        }, 4000);
+      }, 100, div_notify_item.id);
+    }
+
+    // setInterval(() => {
+    //   createNotify('hello');
+    // }, 2500);
+  })();
 })();
