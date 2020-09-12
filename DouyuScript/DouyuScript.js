@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        H2P: 斗鱼虎牙B站小工具
 // @namespace   http://tampermonkey.net/
-// @version     2.2.7
+// @version     2.2.8
 // @icon        http://www.douyutv.com/favicon.ico
 // @description 黑暗模式 / 清爽模式：斗鱼虎牙 B 站 ________ <斗鱼>：抽奖、抄袭、循环弹幕，关键词回复 ____ 批量取关、直播时长、真实人数 ____ 暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、领取鱼塘（自动寻宝）、签到、自动维持亲密度 ________ <虎牙>：抄袭、循环弹幕 ____ 暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、领取宝箱 ________ <B 站>：暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、签到、领取舰长辣条
 // @author      H2P
@@ -25,7 +25,7 @@
 // @match       *://*.bilibili.com/ranking?*
 // @match       *://live.bilibili.com/*
 // @match       *://*.huya.com/*
-// @note        2020.08.06-V2.2.07      鱼粮不足会取消寻宝
+// @note        2020.09.12-V2.2.08      取消关注新增通知栏
 // ==/UserScript==
 
 (() => {
@@ -1044,6 +1044,130 @@
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
 // 
+//                                                              通知栏
+// 
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
+
+const notifyType = {
+  default: {
+    bgColor: '#e6ffff',
+    bdColor: '#23bdd9'
+  },
+  success: {
+    bgColor: '#f6ffec',
+    bdColor: '#53752d'
+  },
+  warn: {
+    bgColor: '#fefbe6',
+    bdColor: '#fdc446'
+  },
+  error: {
+    bgColor: '#fff0ef',
+    bdColor: '#e75252'
+  }
+}
+const notifyMgr = (() => {
+  const style_notify = document.createElement('style');
+  style_notify.id = 'h2p-style-notify';
+  style_notify.innerHTML = `
+    #h2p-div-notify-container {
+      position: fixed;
+      width: 280px;
+      bottom: 20px;
+      left: 20px;
+      overflow: hidden;
+      z-index: 9999;
+    }
+
+    .h2p-div-notify-item {
+      position: relative;
+      width: 250px;
+      height: 25px;
+      right: -280px;
+      padding: 9px 13px;
+      margin: 6px 0;
+      border: 1px solid;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      transition: left 1.5s, right 1.5s;
+    }
+
+    .h2p-div-notify-item-in {
+      right: 0;
+    }
+
+    .h2p-div-notify-close {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      cursor: pointer;
+    }
+
+    .h2p-div-notify-close::before, .h2p-div-notify-close::after {
+      position: absolute;
+      content: '';
+      width: 12px;
+      height: 2px;
+      background: chocolate;
+    }
+
+    .h2p-div-notify-close::before {
+      transform: rotate(45deg);
+    }
+    .h2p-div-notify-close::after {
+      transform: rotate(-45deg);
+    }
+  `;
+  document.body.appendChild(style_notify);
+
+  const div_notify = document.createElement('div');
+  div_notify.id = 'h2p-div-notify-container';
+  document.body.appendChild(div_notify);
+
+  const Notify = function() {
+    this.createNotify = ({ msg = '', type = notifyType.default, autoClose = true }) => {
+      const ran = Math.floor(Math.random() * 100000000);
+      const div_notify_item = document.createElement('div');
+      div_notify_item.id = `h2p-div-notify-${ran}`;
+      div_notify_item.classList.add('h2p-div-notify-item');
+      div_notify_item.style.backgroundColor = type.bgColor;
+      div_notify_item.style.borderColor = type.bdColor;
+      div_notify_item.innerHTML = msg;
+      $H2P('div#h2p-div-notify-container').appendChild(div_notify_item);
+
+      const div_notify_item_close = document.createElement('div');
+      div_notify_item_close.id = `h2p-div-notify-close-${ran}`;
+      div_notify_item_close.classList.add('h2p-div-notify-close');
+      div_notify_item_close.addEventListener('click', (e) => { this.closeNotify(`h2p-div-notify-${e.target.id.match(/[a-zA-Z\-]*(\d+)[a-zA-Z\-]*/g)[1]}`); })
+      $H2P('div#h2p-div-notify-container').appendChild(div_notify_item_close);
+
+      setTimeout((id) => {
+        // 显示通知栏
+        $H2P(`#${id}`).classList.add('h2p-div-notify-item-in');
+        autoClose && setTimeout(this.closeNotify, 4000, id);
+      }, 100, div_notify_item.id);
+    }
+
+    this.closeNotify = (id = '') => {
+      $H2P(`#${id}`).classList.remove('h2p-div-notify-item-in');
+      setTimeout(() => {
+        $H2P('div#h2p-div-notify-container').removeChild($H2P(`#${id}`));
+      }, 1500);
+    }
+  }
+  return new Notify();
+})();
+
+
+
+
+
+
+
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
+// 
 //                                                            清爽模式
 // 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
@@ -1869,11 +1993,15 @@
         let anchorSelected = $H2P('li.layout-Cover-item div.DyLiveCover-selectArea.is-active', false);
         anchorSelected.forEach(anchor => {
           let anchorHref = anchor.nextSibling.href;
+          const anchorName = (anchor.nextSibling.querySelector('div.DyLiveCover-content div.DyLiveCover-userName') || anchor.nextSibling.querySelector('div.DyLiveRecord-content div.DyLiveRecord-userName')).textContent
           if (!anchorHref || anchorHref.length == 0) {
             anchorHref = anchor.parentNode.href;
           }
           let anchorId = anchorHref.split('/').pop();
-          anchorsSelected.push(anchorId);
+          anchorsSelected.push({
+            anchorId,
+            anchorName
+          });
         });
         console.log(anchorsSelected);
         setTO_cancelFollow();
@@ -1884,22 +2012,26 @@
     function setTO_cancelFollow () {
       if (anchorsSelected && anchorsSelected.length > 0) {
         for (let i = 0; i < anchorsSelected.length; i++) {
-          let anchorId = anchorsSelected[i];
+          let { anchorId, anchorName } = anchorsSelected[i];
           setTimeout(() => {
-            cancelFollow(anchorId);
+            cancelFollow(anchorId, anchorName);
           }, (i + 1) * 1000);
         }
       }
     }
 
-    function cancelFollow (anchorId) {
+    function cancelFollow (anchorId, anchorName) {
       fetch(`https://www.douyu.com/room/follow/cancel_confuse/${anchorId}`, {
         method: 'POST'
       })
       .then(res => res.json())
       .then(res => {
         if (res && 'error' in res && res.error === 0) {
-          console.log(`成功取消关注主播 : ${anchorId}`);
+          console.log(`成功取消关注主播 : ${anchorName}`);
+          notifyMgr.createNotify({
+            msg: `成功取消关注主播 : ${anchorName}`,
+            type: notifyType.success
+          });
           let parentEle = $H2P(`a[href="/${anchorId}"]`).parentNode;
           // 从主播 id 找到主播信息所在 ele 的根节点
           while (!parentEle.classList.contains('layout-Cover-item') && parentEle.tagName.toLowerCase() !== 'body') {
@@ -3632,77 +3764,4 @@
     if (config_tool.pausePlay) { $H2P('button#h2p-btn-config-pausePlay').classList.add('h2p-bg-open'); }
   })
   .catch(error => { console.log(error); })
-
-
-
-
-
-
-
-
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
-// 
-//                                                        通知栏
-// 
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
-
-  const notify = (() => {
-    const style_notify = document.createElement('style');
-    style_notify.id = 'h2p-style-notify';
-    style_notify.innerHTML = `
-      #h2p-div-notify-container {
-        position: fixed;
-        width: 280px;
-        bottom: 20px;
-        right: 20px;
-        overflow: hidden;
-        z-index: 9999;
-      }
-
-      .h2p-div-notify-item {
-        position: relative;
-        width: 250px;
-        height: 25px;
-        right: -280px;
-        padding: 10px 15px;
-        margin: 10px 0;
-        border-radius: 5px;
-        background-color: bisque;
-        display: flex;
-        align-items: center;
-        transition: left 1.5s, right 1.5s;
-      }
-
-      .h2p-div-notify-item-in {
-        right: 0;
-      }
-    `;
-    document.body.appendChild(style_notify);
-
-    const div_notify = document.createElement('div');
-    div_notify.id = 'h2p-div-notify-container';
-    document.body.appendChild(div_notify);
-
-    function createNotify(msg = '') {
-      const div_notify_item = document.createElement('div');
-      div_notify_item.id = `h2p-div-notify-${Math.floor(Math.random() * 100000000)}`;
-      div_notify_item.classList.add('h2p-div-notify-item');
-      div_notify_item.innerHTML = msg;
-      $H2P('div#h2p-div-notify-container').appendChild(div_notify_item);
-
-      setTimeout((id) => {
-        $H2P(`#${id}`).classList.add('h2p-div-notify-item-in');
-        setTimeout(() => {
-          $H2P(`#${id}`).classList.remove('h2p-div-notify-item-in');
-          setTimeout(() => {
-            $H2P('div#h2p-div-notify-container').removeChild($H2P(`#${id}`));
-          }, 1500);
-        }, 4000);
-      }, 100, div_notify_item.id);
-    }
-
-    // setInterval(() => {
-    //   createNotify('hello');
-    // }, 2500);
-  })();
 })();
