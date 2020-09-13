@@ -1,11 +1,13 @@
 // ==UserScript==
 // @name        H2P: 斗鱼虎牙B站小工具
 // @namespace   http://tampermonkey.net/
-// @version     2.2.8
+// @version     2.2.10
 // @icon        http://www.douyutv.com/favicon.ico
 // @description 黑暗模式 / 清爽模式：斗鱼虎牙 B 站 ________ <斗鱼>：抽奖、抄袭、循环弹幕，关键词回复 ____ 批量取关、直播时长、真实人数 ____ 暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、领取鱼塘（自动寻宝）、签到、自动维持亲密度 ________ <虎牙>：抄袭、循环弹幕 ____ 暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、领取宝箱 ________ <B 站>：暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、签到、领取舰长辣条
 // @author      H2P
 // @compatible  chrome
+// @require     https://greasyfork.org/scripts/411278-h2p-utils/code/H2P:%20utils.js?version=847425
+// @require     https://greasyfork.org/scripts/411280-h2p-notify-util/code/H2P:%20notify%20util.js?version=847422
 // @match       *://*.douyu.com/0*
 // @match       *://*.douyu.com/1*
 // @match       *://*.douyu.com/2*
@@ -25,69 +27,18 @@
 // @match       *://*.bilibili.com/ranking?*
 // @match       *://live.bilibili.com/*
 // @match       *://*.huya.com/*
-// @note        2020.09.12-V2.2.08      取消关注新增通知栏
+// @note        2020.09.12-V2.2.10      修复清爽模式会隐藏二级目录下的预言问题
 // ==/UserScript==
 
-(() => {
+(($util, $notifyMgr) => {
   'use strict';
 
-  // 在字符串前（后）添加 0
-  function add0(s = '', len = 0, isAddFront = true) {
-    s = s.toString();
-    while (s.length < len) { s = isAddFront ? '0' + s : s + '0'; }
-    return s;
-  }
-  // 返回毫秒
-  function timeMS(num = 0) {
-    num = Number.parseInt(num);
-    return num < 946684800000 ? num * 1000 : num;
-  }
-
-  const $H2P  = (xpath = 'body', queryOneElement = true) => queryOneElement ? document.querySelector(xpath) : Array.from(document.querySelectorAll(xpath));
-  const $LS   = {
-    init: (itemKey = '', itemPre = {}) => {
-      let item = Object.assign({}, itemPre, $LS.get(itemKey));
-      for (let key in item) { if (!(key in itemPre)) { delete item[key]; } }
-      localStorage.removeItem(itemKey);
-      localStorage.setItem(itemKey, JSON.stringify(item));
-      return item;
-    },
-    set: (itemKey = '', item = {}) => { localStorage.setItem(itemKey, JSON.stringify(item)); },
-    get: (itemKey = '') => JSON.parse(localStorage.getItem(itemKey)) || {},
-    remove: (itemKey = '') => { localStorage.removeItem(itemKey); }
-  }
-  const $INVL = {
-    clear: (INVLID) => { clearInterval(INVLID); INVLID = null; }
-  }
-  
-  const $TIME   = {
-    hms: (time = 0) => {
-      let h = Number.parseInt(time / 3600000);
-      let m = Number.parseInt(time % 3600000 / 60000);
-      let s = Number.parseInt(time % 3600000 % 60000 / 1000);
-      return {
-        h: add0(h, 2),
-        m: add0(m, 2),
-        s: add0(s, 2)
-      }
-    }
-  }
-
-  // return millisecond
-  Date.prototype.$timems = Date.prototype.getTime;
-  // return second
-  Date.prototype.$times = function() { return Number.parseInt(this.getTime() / 1000); }
-  // format time: yyyy-MM-dd hh-mm-ss
-  Date.prototype.$formatTime = function() { return `${this.getFullYear()}-${add0(this.getMonth() + 1, 2)}-${add0(this.getDate(), 2)} ${add0(this.getHours(), 2)}:${add0(this.getMinutes(), 2)}:${add0(this.getSeconds(), 2)}`; }
-  // format date: yyyy-MM-dd
-  Date.prototype.$formatDate = function() { return `${this.getFullYear()}-${add0(this.getMonth() + 1, 2)}-${add0(this.getDate(), 2)}`; }
-
-  const $KEYCODE = {
-    'a': 65, 'b': 66, 'c': 67, 'd': 68, 'e': 69, 'f': 70, 'g': 71,
-    'h': 72, 'i': 73, 'j': 74, 'k': 75, 'l': 76, 'm': 77, 'n': 78,
-    'o': 79, 'p': 80, 'q': 81, 'r': 82, 's': 83, 't': 84,
-    'u': 85, 'v': 86, 'w': 87, 'x': 88, 'y': 89, 'z': 90,
-  }
+  /**
+   * 根据 xpath 查询元素
+   * @param {String} xpath 
+   * @param {Boolean} queryOneElement 
+   */
+  const $H2P = (xpath = 'body', queryOneElement = true) => queryOneElement ? document.querySelector(xpath) : Array.from(document.querySelectorAll(xpath));
 
   const isDouyu         = location.href.includes('douyu.com');
   const isDouyuTopic    = location.href.startsWith('https://www.douyu.com/topic/');
@@ -164,7 +115,7 @@
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
 
   const LSClear = 'h2p-DY-config-clear';
-  let config_clear = $LS.init(LSClear, {
+  let config_clear = $util.LS.init(LSClear, {
     isClearNav  : false,
     isClearInfo : false,
     isClearAside: false,
@@ -948,10 +899,12 @@
 
     let INVL_render = setInterval(() => {
       if ($H2P('img#h2p-img-blackMode')) {
-          $INVL.clear(INVL_render);
-          console.log('启动完毕 : BlackMode 初始化');
-          resolve();
-          return;
+        clearInterval(INVL_render);
+        INVL_render = null;
+        
+        console.log('启动完毕 : BlackMode 初始化');
+        resolve();
+        return;
       }
 
       if (isDouyu && $H2P('div.Header-right')) {
@@ -979,11 +932,11 @@
   })
   .then(() => {
     // 黑暗模式快捷键
-    document.addEventListener('keydown', (e) => { if (e.shiftKey && e.which == $KEYCODE.z) { $H2P('img#h2p-img-blackMode').click(); } });
+    document.addEventListener('keydown', (e) => { if (e.shiftKey && e.which == $util.keyCode.z) { $H2P('img#h2p-img-blackMode').click(); } });
 
     $H2P('img#h2p-img-blackMode').addEventListener('click', (event) => {
       config_clear.blackMode = !config_clear.blackMode;
-      $LS.set(LSClear, config_clear);
+      $util.LS.set(LSClear, config_clear);
       event.currentTarget.src = config_clear.blackMode ? blackBase64 : whiteBase64;
       updateClearModeIcon();
       blackMode();
@@ -999,28 +952,28 @@
       $H2P('input#h2p-input-blackMode-grey').checked  = config_clear.BMGrey;
       $H2P('input#h2p-input-blackMode-black').checked = config_clear.BMBlack;
       $H2P('input#h2p-input-blackMode-DIY').checked   = config_clear.BMDIY;
-      $LS.set(LSClear, config_clear);
+      $util.LS.set(LSClear, config_clear);
       blackMode();
     });
 
     $H2P('input#h2p-input-blackMode-DIY-BG-deep').addEventListener('change', (event) => {
       config_clear.BMBGDeep = event.target.value;
-      $LS.set(LSClear, config_clear);
+      $util.LS.set(LSClear, config_clear);
       blackMode();
     }, false);
     $H2P('input#h2p-input-blackMode-DIY-BG-light').addEventListener('change', (event) => {
       config_clear.BMBGLight = event.target.value;
-      $LS.set(LSClear, config_clear);
+      $util.LS.set(LSClear, config_clear);
       blackMode();
     }, false);
     $H2P('input#h2p-input-blackMode-DIY-font-deep').addEventListener('change', (event) => {
       config_clear.BMFontDeep = event.target.value;
-      $LS.set(LSClear, config_clear);
+      $util.LS.set(LSClear, config_clear);
       blackMode();
     }, false);
     $H2P('input#h2p-input-blackMode-DIY-font-light').addEventListener('change', (event) => {
       config_clear.BMFontLight = event.target.value;
-      $LS.set(LSClear, config_clear);
+      $util.LS.set(LSClear, config_clear);
       blackMode();
     }, false);
   })
@@ -1034,130 +987,6 @@
     $H2P('input#h2p-input-blackMode-DIY-font-deep').value = config_clear.BMFontDeep;
     $H2P('input#h2p-input-blackMode-DIY-font-light').value = config_clear.BMFontLight;
   })
-
-
-
-
-
-
-
-
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
-// 
-//                                                              通知栏
-// 
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
-
-const notifyType = {
-  default: {
-    bgColor: '#e6ffff',
-    bdColor: '#23bdd9'
-  },
-  success: {
-    bgColor: '#f6ffec',
-    bdColor: '#53752d'
-  },
-  warn: {
-    bgColor: '#fefbe6',
-    bdColor: '#fdc446'
-  },
-  error: {
-    bgColor: '#fff0ef',
-    bdColor: '#e75252'
-  }
-}
-const notifyMgr = (() => {
-  const style_notify = document.createElement('style');
-  style_notify.id = 'h2p-style-notify';
-  style_notify.innerHTML = `
-    #h2p-div-notify-container {
-      position: fixed;
-      width: 280px;
-      bottom: 20px;
-      left: 20px;
-      overflow: hidden;
-      z-index: 9999;
-    }
-
-    .h2p-div-notify-item {
-      position: relative;
-      width: 250px;
-      height: 25px;
-      right: -280px;
-      padding: 9px 13px;
-      margin: 6px 0;
-      border: 1px solid;
-      border-radius: 5px;
-      display: flex;
-      align-items: center;
-      transition: left 1.5s, right 1.5s;
-    }
-
-    .h2p-div-notify-item-in {
-      right: 0;
-    }
-
-    .h2p-div-notify-close {
-      position: absolute;
-      top: 15px;
-      right: 20px;
-      cursor: pointer;
-    }
-
-    .h2p-div-notify-close::before, .h2p-div-notify-close::after {
-      position: absolute;
-      content: '';
-      width: 12px;
-      height: 2px;
-      background: chocolate;
-    }
-
-    .h2p-div-notify-close::before {
-      transform: rotate(45deg);
-    }
-    .h2p-div-notify-close::after {
-      transform: rotate(-45deg);
-    }
-  `;
-  document.body.appendChild(style_notify);
-
-  const div_notify = document.createElement('div');
-  div_notify.id = 'h2p-div-notify-container';
-  document.body.appendChild(div_notify);
-
-  const Notify = function() {
-    this.createNotify = ({ msg = '', type = notifyType.default, autoClose = true }) => {
-      const ran = Math.floor(Math.random() * 100000000);
-      const div_notify_item = document.createElement('div');
-      div_notify_item.id = `h2p-div-notify-${ran}`;
-      div_notify_item.classList.add('h2p-div-notify-item');
-      div_notify_item.style.backgroundColor = type.bgColor;
-      div_notify_item.style.borderColor = type.bdColor;
-      div_notify_item.innerHTML = msg;
-      $H2P('div#h2p-div-notify-container').appendChild(div_notify_item);
-
-      const div_notify_item_close = document.createElement('div');
-      div_notify_item_close.id = `h2p-div-notify-close-${ran}`;
-      div_notify_item_close.classList.add('h2p-div-notify-close');
-      div_notify_item_close.addEventListener('click', (e) => { this.closeNotify(`h2p-div-notify-${e.target.id.match(/[a-zA-Z\-]*(\d+)[a-zA-Z\-]*/g)[1]}`); })
-      $H2P('div#h2p-div-notify-container').appendChild(div_notify_item_close);
-
-      setTimeout((id) => {
-        // 显示通知栏
-        $H2P(`#${id}`).classList.add('h2p-div-notify-item-in');
-        autoClose && setTimeout(this.closeNotify, 4000, id);
-      }, 100, div_notify_item.id);
-    }
-
-    this.closeNotify = (id = '') => {
-      $H2P(`#${id}`).classList.remove('h2p-div-notify-item-in');
-      setTimeout(() => {
-        $H2P('div#h2p-div-notify-container').removeChild($H2P(`#${id}`));
-      }, 1500);
-    }
-  }
-  return new Notify();
-})();
 
 
 
@@ -1404,6 +1233,18 @@ const notifyMgr = (() => {
           .ActivityItem[data-flag=room_level],
           .GiftItem-leftConnerMark { display: none!important; }
         `;
+        // 转移预言的位置
+        const start = new Date().$times();
+        let INVL_wait_div_quiz = setInterval(() => {
+          if ($H2P('div.ToolbarActivityArea > div > div') && $H2P('div.ActiviesExpandPanel div.ActivityItem[data-flag="anchor_quiz"]')) {
+            clearInterval(INVL_wait_div_quiz);
+            INVL_wait_div_quiz = null;
+            $H2P('div.ToolbarActivityArea > div > div').appendChild($H2P('div.ActiviesExpandPanel div.ActivityItem[data-flag="anchor_quiz"]'));
+          } else if ((new Date().$times() - start) > 5 * 60) { // 最多等待 5min
+            clearInterval(INVL_wait_div_quiz);
+            INVL_wait_div_quiz = null;
+          }
+        }, 500);
       } else if (isBilibili) {
         if (isBilibiliLive) {
           // 开通大航海、心愿、礼物图
@@ -1868,7 +1709,9 @@ const notifyMgr = (() => {
 
     let INVL_render = setInterval(() => {
       if ($H2P('img#h2p-img-clearMode')) {
-        $INVL.clear(INVL_render);
+        clearInterval(INVL_render);
+        INVL_render = null;
+
         console.log('启动完毕 : clearMode 初始化');
         resolve();
         return;
@@ -1899,11 +1742,11 @@ const notifyMgr = (() => {
   })
   .then(() => {
     // 清爽模式快捷键
-    document.addEventListener('keydown', (e) => { if (e.shiftKey && e.which == $KEYCODE.x) { $H2P('img#h2p-img-clearMode').click(); } });
+    document.addEventListener('keydown', (e) => { if (e.shiftKey && e.which == $util.keyCode.x) { $H2P('img#h2p-img-clearMode').click(); } });
 
     $H2P('img#h2p-img-clearMode').addEventListener('click', (event) => {
       config_clear.clearMode = !config_clear.clearMode;
-      $LS.set(LSClear, config_clear);
+      $util.LS.set(LSClear, config_clear);
       event.currentTarget.src = config_clear.clearMode ? (config_clear.blackMode ? backBase64.black : backBase64.white) : (config_clear.blackMode ? clearBase64.black : clearBase64.white);
       clearMode();
     });
@@ -1936,7 +1779,7 @@ const notifyMgr = (() => {
         config_clear.isClearPlay = !config_clear.isClearPlay;
         if (config_clear.clearMode) { clearPlay(); }
       }
-      $LS.set(LSClear, config_clear);
+      $util.LS.set(LSClear, config_clear);
     }, false);
   })
   .then(() => {
@@ -1976,7 +1819,8 @@ const notifyMgr = (() => {
     new Promise((resolve, reject) => {
       let INVL_AddBtnCancelFollow = setInterval(() => {
         if ($H2P('div#filter-tab-expandable-wrapper') && !$H2P('a#h2p-a-cancelFollow')) {
-          $INVL.clear(INVL_AddBtnCancelFollow);
+          clearInterval(INVL_AddBtnCancelFollow);
+          INVL_AddBtnCancelFollow = null;
           resolve();
         }
       }, 500);
@@ -2028,9 +1872,9 @@ const notifyMgr = (() => {
       .then(res => {
         if (res && 'error' in res && res.error === 0) {
           console.log(`成功取消关注主播 : ${anchorName}`);
-          notifyMgr.createNotify({
+          $notifyMgr.createNotify({
             msg: `成功取消关注主播 : ${anchorName}`,
-            type: notifyType.success
+            type: $notifyMgr.type.success
           });
           let parentEle = $H2P(`a[href="/${anchorId}"]`).parentNode;
           // 从主播 id 找到主播信息所在 ele 的根节点
@@ -2094,7 +1938,7 @@ const notifyMgr = (() => {
   }
 
   const LSInfo = 'h2p-DY-config-info';
-  let config_info = $LS.init(LSInfo, {
+  let config_info = $util.LS.init(LSInfo, {
     anchorFanUpdatedTime: '',
     anchorFanRooms: {},
     showTs: {},
@@ -2115,9 +1959,17 @@ const notifyMgr = (() => {
           roomInfo.online = Number(res.split('online":')[1].split(',')[0]);
         }
         console.log(`Succeed getting online: ${roomInfo.online}`);
+        $notifyMgr.createNotify({
+          msg: `成功获取在线人数: ${roomInfo.online}`,
+          type: $notifyMgr.type.success
+        })
       } catch (error) {
         console.log(error);
         console.log('Fail to get online');
+        $notifyMgr.createNotify({
+          msg: `获取在线人数失败`,
+          type: $notifyMgr.type.error
+        })
       }
     });
 
@@ -2125,18 +1977,22 @@ const notifyMgr = (() => {
     let showTs = {};
     if (Array.isArray(config_info.showTs)) {
       config_info.showTs = {};
-      $LS.set(LSInfo, config_info);
+      $util.LS.set(LSInfo, config_info);
     } else { showTs = config_info.showTs || {}; }
     let [showT, getT] = [0, 0];
     if (showTs[roomInfo.id]) {
-      showT = timeMS(showTs[roomInfo.id].showT);
-      getT = timeMS(showTs[roomInfo.id].getT);
+      showT = $util.timeMS(showTs[roomInfo.id].showT);
+      getT = $util.timeMS(showTs[roomInfo.id].getT);
     }
     // 获取时间 < 6h
     if (((Date.now() - getT) / 3600000.0) < 6) {
       roomInfo.showT = showT;
       roomInfo.getT = getT;
       console.log(`Succeed getting anchor showTime: ${new Date(showT).$formatTime()}`);
+      $notifyMgr.createNotify({
+        msg: `成功获取直播时间: ${new Date(showT).$formatTime()}`,
+        type: $notifyMgr.type.success
+      });
     } else {
       fetch('https://www.douyu.com/betard/' + roomInfo.id)
       .then(res => res.json())
@@ -2144,18 +2000,22 @@ const notifyMgr = (() => {
         try {
           if (res) {
             if (res.cache_time) {
-              roomInfo.showT = timeMS(res.cache_time);
+              roomInfo.showT = $util.timeMS(res.cache_time);
             } else {
               let r = res.split('"cache_time":')[1];
               let showT = r.substr(0, r.indexOf(','));
-              roomInfo.showT = timeMS(showT);
+              roomInfo.showT = $util.timeMS(showT);
             }
             config_info.showTs[roomInfo.id] = {
               'showT' : roomInfo.showT,
               "getT" : Date.now()
             };
-            console.log(`Succeed getting anchor showTime: ${new Date(roomInfo.showT).format()}`);
-            $LS.set(LSInfo, config_info);
+            console.log(`Succeed getting anchor showTime: ${new Date(roomInfo.showT).$formatTime()}`);
+            $notifyMgr.createNotify({
+              msg: `成功获取直播时间: ${new Date(roomInfo.showT).$formatTime()}`,
+              type: $notifyMgr.type.success
+            });
+            $util.LS.set(LSInfo, config_info);
           } else { console.log('Fail to get anchor showTime.') }
         } catch (error) {
           console.log(error);
@@ -2201,7 +2061,7 @@ const notifyMgr = (() => {
             config_info.anchorFanRooms[anchorRoom] = {anchorName, anchorURL, anchorUp};
           }
           config_info.anchorFanUpdatedTime = new Date().$formatDate();
-          $LS.set(LSInfo, config_info);
+          $util.LS.set(LSInfo, config_info);
 
           console.log('有粉丝牌的主播房间号');
           console.log(config_info.anchorFanRooms);
@@ -2259,7 +2119,8 @@ const notifyMgr = (() => {
 
       let setINVL_wait_div_announce = setInterval(() => {
         if ($H2P('div.layout-Player-asideMainTop') && $H2P('div.BarrageSuperLink') && $H2P('div.ChatToolBar')) {
-          $INVL.clear(setINVL_wait_div_announce);
+          clearInterval(setINVL_wait_div_announce);
+          setINVL_wait_div_announce = null;
           setTimeout(() => {
             $H2P('div.layout-Player-announce').appendChild(divBar);
             document.body.appendChild(eleStyle);
@@ -2281,12 +2142,12 @@ const notifyMgr = (() => {
         
         if (roomInfo.showT) {
           let showT = Date.now() - roomInfo.showT;
-          let { h, m, s } = $TIME.hms(showT);
+          let { h, m, s } = $util.HMS(showT);
           $H2P('a#a-anchorShowT > div.Title-anchorText').textContent = `${h}:${m}:${s}`;
           // 设置直播时长
           setInterval(() => {
             showT += 1000;
-            let { h, m, s } = $TIME.hms(showT);
+            let { h, m, s } = $util.HMS(showT);
             $H2P('a#a-anchorShowT > div.Title-anchorText').textContent = `${h}:${m}:${s}`;
           }, 1000);
         }
@@ -2318,7 +2179,7 @@ const notifyMgr = (() => {
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
 
   const LSScript = 'h2p-DY-config-script';
-  let config_script = $LS.init(LSScript, {
+  let config_script = $util.LS.init(LSScript, {
     icon  : '🐯'
   });
 
@@ -2460,28 +2321,32 @@ const notifyMgr = (() => {
     // 检查弹幕图标挂载点（斗鱼弹幕输入框）是否加载完成
     let check_mountPoint_barPanel = setInterval(() => {
       if (isDouyu && $H2P('div.layout-Player-asideMainTop') && $H2P('div.BarrageSuperLink') && $H2P('div.ChatToolBar')) {
-        $INVL.clear(check_mountPoint_barPanel);
+        clearInterval(check_mountPoint_barPanel);
+        check_mountPoint_barPanel = null;
         setTimeout(() => {
           $H2P('div.layout-Player-asideMainTop').appendChild(div_DYScript);
           $H2P('div.ChatToolBar').appendChild(div_sign);
           resolve();
         }, 2000);
       } else if (isHuya && $H2P('div.room-chat-tools') && $H2P('div.room-chat-tools > .room-chat-tool') && $H2P('div#watchChat_pub')) {
-        $INVL.clear(check_mountPoint_barPanel);
+        clearInterval(check_mountPoint_barPanel);
+        check_mountPoint_barPanel = null;
         setTimeout(() => {
           $H2P('div#watchChat_pub').appendChild(div_DYScript);
           $H2P('div.room-chat-tools').appendChild(div_sign);
           resolve();
         }, 2000);
       } else if (isBilibiliLive && $H2P('div.chat-history-panel') && $H2P('div#iconConfigRight')) {
-        $INVL.clear(check_mountPoint_barPanel);
+        clearInterval(check_mountPoint_barPanel);
+        check_mountPoint_barPanel = null;
         setTimeout(() => {
           $H2P('div.chat-history-panel').appendChild(div_DYScript);
           $H2P('div#iconConfigRight').appendChild(div_sign);
           resolve();
         }, 2000);
       } else if (!isDouyu && !isHuya && !isBilibili) {
-        $INVL.clear(check_mountPoint_barPanel);
+        clearInterval(check_mountPoint_barPanel);
+        check_mountPoint_barPanel = null;
         document.body.appendChild(div_DYScript);
         document.body.appendChild(div_sign);
         resolve();
@@ -2531,7 +2396,7 @@ const notifyMgr = (() => {
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
 
   const LSChat = 'h2p-DY-config-chat';
-  let config_chat = $LS.init(LSChat, {
+  let config_chat = $util.LS.init(LSChat, {
     invlStart : 3,
     invlEnd   : 4,
     isLuck    : false,
@@ -2701,7 +2566,8 @@ const notifyMgr = (() => {
 
     let setINVL_wait_div_DYScript = setInterval(() => {
       if ($H2P('div#div-DYScript')) {
-        $INVL.clear(setINVL_wait_div_DYScript);
+        clearInterval(setINVL_wait_div_DYScript);
+        setINVL_wait_div_DYScript = null;
         $H2P('div#div-DYScript').appendChild(div);
         resolve();
       }
@@ -2721,7 +2587,7 @@ const notifyMgr = (() => {
       } else if (target.id === 'h2p-input-bar-isLuck') {
         config_chat.isLuck = target.checked;
       }
-      $LS.set(LSChat, config_chat);
+      $util.LS.set(LSChat, config_chat);
     }, false)
       
     // 间隔最小值
@@ -2730,7 +2596,7 @@ const notifyMgr = (() => {
     eleInvlStart.addEventListener('focusout', () => {
       eleInvlStart.value = Math.max(eleInvlStart.value, 3);
       config_chat.invlStart = eleInvlStart.value;
-      $LS.set(LSChat, config_chat);
+      $util.LS.set(LSChat, config_chat);
     });
 
     // 间隔最大值
@@ -2739,7 +2605,7 @@ const notifyMgr = (() => {
     eleInvlEnd.addEventListener('focusout', () => {
       eleInvlEnd.value = Math.max(eleInvlEnd.value, Number(eleInvlStart.value) + 1, 4);
       config_chat.invlEnd = eleInvlEnd.value;
-      $LS.set(LSChat, config_chat);
+      $util.LS.set(LSChat, config_chat);
     });
 
     // 抽奖弹幕最大次数
@@ -2748,14 +2614,14 @@ const notifyMgr = (() => {
     eleBarLuckTime.addEventListener('focusout', () => {
       eleBarCopyInvl.value = Math.max(eleBarCopyInvl.value, 1);
       config_chat.luckTime = Number(eleBarLuckTime.value);
-      $LS.set(LSChat, config_chat);
+      $util.LS.set(LSChat, config_chat);
     });
 
     // 添加关键词回复
     let eleAddKeyRe = $H2P('button#h2p-btn-addKeyRe');
     eleAddKeyRe.addEventListener('click', () => {
       config_chat.keyReBar.push({key: 'default', re: 'default'});
-      $LS.set(LSChat, config_chat);
+      $util.LS.set(LSChat, config_chat);
       $H2P('select#h2p-select-keyRe').options.add(new Option('default', 'default'));
       $H2P('select#h2p-select-keyRe').selectedIndex = config_chat.keyReBar.length - 1;
       $H2P('input#h2p-input-key').value = $H2P('select#h2p-select-keyRe').selectedOptions[0].textContent;
@@ -2766,7 +2632,7 @@ const notifyMgr = (() => {
     let eleDelKeyRe = $H2P('button#h2p-btn-delKeyRe');
     eleDelKeyRe.addEventListener('click', () => {
       config_chat.keyReBar.splice($H2P('select#h2p-select-keyRe').selectedIndex, 1);
-      $LS.set(LSChat, config_chat);
+      $util.LS.set(LSChat, config_chat);
       $H2P('select#h2p-select-keyRe').options.remove($H2P('select#h2p-select-keyRe').selectedIndex);
       $H2P('input#h2p-input-key').value = $H2P('select#h2p-select-keyRe').selectedOptions[0].textContent;
       $H2P('input#h2p-input-re').value = $H2P('select#h2p-select-keyRe').selectedOptions[0].value;
@@ -2791,7 +2657,7 @@ const notifyMgr = (() => {
         config_chat.keyReBar[$H2P('select#h2p-select-keyRe').selectedIndex].key = eleKey.value;
         $H2P('select#h2p-select-keyRe').selectedOptions[0].textContent = eleKey.value;
       }
-      $LS.set(LSChat, config_chat);
+      $util.LS.set(LSChat, config_chat);
     });
 
     // 修改回复
@@ -2806,7 +2672,7 @@ const notifyMgr = (() => {
         config_chat.keyReBar[$H2P('select#h2p-select-keyRe').selectedIndex].re = eleRe.value;
         $H2P('select#h2p-select-keyRe').selectedOptions[0].value = eleRe.value;
       }
-      $LS.set(LSChat, config_chat);
+      $util.LS.set(LSChat, config_chat);
     });
 
     // 抄袭弹幕最大间隔
@@ -2815,7 +2681,7 @@ const notifyMgr = (() => {
     eleBarCopyInvl.addEventListener('focusout', () => {
       eleBarCopyInvl.value = Math.min(eleBarCopyInvl.value, 200);
       config_chat.copyInvl = Number(eleBarCopyInvl.value);
-      $LS.set(LSChat, config_chat);
+      $util.LS.set(LSChat, config_chat);
     });
 
     // 循环弹幕
@@ -2823,7 +2689,7 @@ const notifyMgr = (() => {
     eleLoop.addEventListener('focusout', () => {
     if (eleLoop.value && eleLoop.value.replace(/\s/g, '')) {
       config_chat.loopBar = eleLoop.value.split('\n');
-      $LS.set(LSChat, config_chat);
+      $util.LS.set(LSChat, config_chat);
     }
     });
 
@@ -2840,7 +2706,8 @@ const notifyMgr = (() => {
 
       clearTimeout(INVL_SendBar);
       INVL_SendBar = null;
-      $INVL.clear(INVL_ShowCD);
+      clearInterval(INVL_ShowCD);
+      INVL_ShowCD = null;
       if (config_chat.isSendNow) {
         setINVL_SendBar();
         eleSend.classList.add('h2p-bg-open');
@@ -2862,7 +2729,7 @@ const notifyMgr = (() => {
         let index = config_chat.sendRooms.indexOf(roomInfo.id);
         config_chat.sendRooms = [...config_chat.sendRooms.slice(0, index), ...config_chat.sendRooms.slice(index+1)];
       }
-      $LS.set(LSChat, config_chat);
+      $util.LS.set(LSChat, config_chat);
     }, false);
 
     // 发送所有按钮
@@ -2880,7 +2747,7 @@ const notifyMgr = (() => {
       if ((config_chat.isSend && !config_chat.isSendNow) || (!config_chat.isSend && config_chat.isSendNow)) {
         eleSend.click();
       }
-      $LS.set(LSChat, config_chat);
+      $util.LS.set(LSChat, config_chat);
     }, false);
   })
   .catch(error => console.log(error))
@@ -2999,20 +2866,20 @@ const notifyMgr = (() => {
     // 抄袭弹幕
     if (!barrage && config_chat.isCopy) {
       
-      let elePath =  isDouyu ? 'ul#js-barrage-list > li' :
-              isHuya ? 'ul#chat-room__list > li' :
-              isBilibiliLive ? 'div#chat-items > div' : '';
-      let bars = $H2P(elePath, false);
-      let index = 0;
-      if (config_chat.copyInvl) {
-        if (config_chat.copyInvl < bars.length) { index = config_chat.copyInvl; }
-        else { index = bars.length - 1; }
-      }
+    let elePath =  isDouyu ? 'ul#js-barrage-list > li' :
+            isHuya ? 'ul#chat-room__list > li' :
+            isBilibiliLive ? 'div#chat-items > div' : '';
+    let bars = $H2P(elePath, false);
+    let index = 0;
+    if (config_chat.copyInvl) {
+      if (config_chat.copyInvl > 0 && config_chat.copyInvl < bars.length) { index = bars.length - config_chat.copyInvl; }
+      else { index = bars.length - 1; }
+    }
 
-      let elePath2 =  isDouyu ? 'span[class^="Barrage-content"]' :
-              isHuya ? 'span.msg' :
-              isBilibiliLive ? 'span.danmaku-content' : '';
-      barrage = bars[index].querySelector(elePath2).textContent.replace(/\s/g, '');
+    let elePath2 =  isDouyu ? 'span[class^="Barrage-content"]' :
+            isHuya ? 'span.msg' :
+            isBilibiliLive ? 'span.danmaku-content' : '';
+    barrage = bars[index].querySelector(elePath2).textContent.replace(/\s/g, '');
     }
 
     // 循环弹幕
@@ -3042,7 +2909,8 @@ const notifyMgr = (() => {
 
   function setINVL_ShowCD (invl) {
     new Promise((resolve, reject) => {
-      $INVL.clear(INVL_ShowCD);
+      clearInterval(INVL_ShowCD);
+      INVL_ShowCD = null;
       resolve(invl);
     }).then((invl)=> {
       let cd = invl + 0.3;
@@ -3104,7 +2972,7 @@ const notifyMgr = (() => {
       else if (config_tool.fullMode) $H2P('button#h2p-btn-config-fullMode').click();
     }
     // shift a
-    if (e.shiftKey && e.which == $KEYCODE.a) {
+    if (e.shiftKey && e.which == $util.keyCode.a) {
       if ($H2P('span#h2p-span-DYScript')) {
         if (!viewShow_script) {
           $H2P('span#h2p-span-DYScript').click();
@@ -3116,7 +2984,7 @@ const notifyMgr = (() => {
       }
     }
     // shift s
-    else if (e.shiftKey && e.which == $KEYCODE.s) {
+    else if (e.shiftKey && e.which == $util.keyCode.s) {
       if ($H2P('span#h2p-span-DYScript')) {
         if (!viewShow_script) {
           $H2P('span#h2p-span-DYScript').click();
@@ -3128,15 +2996,15 @@ const notifyMgr = (() => {
       }
     }
     // 清爽模式快捷键
-    else if (e.shiftKey && e.which == $KEYCODE.o) { $H2P('button#h2p-btn-config-wideMode').click(); }
-    else if (e.shiftKey && e.which == $KEYCODE.p) { $H2P('button#h2p-btn-config-fullMode').click(); }
+    else if (e.shiftKey && e.which == $util.keyCode.o) { $H2P('button#h2p-btn-config-wideMode').click(); }
+    else if (e.shiftKey && e.which == $util.keyCode.p) { $H2P('button#h2p-btn-config-fullMode').click(); }
     // 清空弹幕
-    else if (e.shiftKey && e.which == $KEYCODE.e) {
+    else if (e.shiftKey && e.which == $util.keyCode.e) {
       let elePath = isDouyu ? 'a.Barrage-toolbarClear' : 'p.clearBtn';
       $H2P(elePath).click();
     }
     // 锁定弹幕
-    else if (e.shiftKey && e.which == $KEYCODE.w) {
+    else if (e.shiftKey && e.which == $util.keyCode.w) {
       let elePath = isDouyu ? 'a.Barrage-toolbarLock' : 'p.lockBtn';
       $H2P(elePath).click();
     }
@@ -3166,7 +3034,8 @@ const notifyMgr = (() => {
                       isHuya ? 'div.player-play-btn' :
                       isBilibiliLive ? 'button.blpui-btn.icon-btn[data-title="播放"]' : '';
       if ($H2P(elePathOut)) {
-        $INVL.clear(INVL_checkIconReady);
+        clearInterval(INVL_checkIconReady);
+        INVL_checkIconReady = null;
         console.log('启动完毕 : 暂停');
         return;
       }
@@ -3186,7 +3055,8 @@ const notifyMgr = (() => {
               isHuya ? 'div.player-sound-off' :
               isBilibiliLive ? 'button.blpui-btn.icon-btn[data-title="取消静音"]' : '';
       if ($H2P(elePathOut)) {
-        $INVL.clear(INVL_checkIconReady);
+        clearInterval(INVL_checkIconReady);
+        INVL_checkIconReady = null;
         console.log('启动完毕 : 静音');
         return;
       }
@@ -3206,7 +3076,8 @@ const notifyMgr = (() => {
                       isHuya ? 'div.danmu-hide-btn' :
                       isBilibiliLive ? 'button.blpui-btn.icon-btn[data-title="显示弹幕"]' : '';
       if ($H2P(elePathOut)) {
-        $INVL.clear(INVL_checkIconReady);
+        clearInterval(INVL_checkIconReady);
+        INVL_checkIconReady = null;
         console.log('启动完毕 : 禁止弹幕');
         return;
       }
@@ -3228,7 +3099,8 @@ const notifyMgr = (() => {
                         isBilibiliLive ? 'div.blpui-btn.text-btn.no-select.html-tip-parent span' : '';
       let curShow = $H2P(elePath, false) && $H2P(elePath, false).length > 0 ? (config_tool.show0 ? $H2P(elePath, false).pop().textContent : $H2P(elePath, false).shift().textContent) : '';
       if ($H2P(elePathShow) && $H2P(elePathShow).textContent === curShow) {
-        $INVL.clear(INVL_checkIconReady);
+        clearInterval(INVL_checkIconReady);
+        INVL_checkIconReady = null;
         console.log(`启动完毕 : ${config_tool.show0 ? '最低' : '最高'}画质`);
         return;
       }
@@ -3261,7 +3133,8 @@ const notifyMgr = (() => {
       let start = new Date().getTime();
       let setINVL_waitWideCoin = setInterval(() => {
         if ($H2P(elePathOut)) {
-          $INVL.clear(setINVL_waitWideCoin);
+          clearInterval(setINVL_waitWideCoin);
+          setINVL_waitWideCoin = null;
           console.log('启动完毕 : 宽屏模式');
           return;
         }
@@ -3277,7 +3150,8 @@ const notifyMgr = (() => {
         } else {
           // 等待最长 5min
           if ((new Date().getTime() - start) / 1000 > 300) {
-            $INVL.clear(setINVL_waitWideCoin);
+            clearInterval(setINVL_waitWideCoin);
+            setINVL_waitWideCoin = null;
           }
         }
       }, 500);
@@ -3301,7 +3175,8 @@ const notifyMgr = (() => {
       let start = new Date().getTime();
       let setINVL_waitFullCoin = setInterval(() => {
         if ($H2P(elePathOut)) {
-          $INVL.clear(setINVL_waitFullCoin);
+          clearInterval(setINVL_waitFullCoin);
+          setINVL_waitFullCoin = null;
           console.log('启动完毕 : 网页全屏');
           return;
         }
@@ -3317,7 +3192,8 @@ const notifyMgr = (() => {
         } else {
           // 等待最长 5min
           if ((new Date().getTime() - start) / 1000 > 300) {
-            $INVL.clear(setINVL_waitFullCoin);
+            clearInterval(setINVL_waitFullCoin);
+            setINVL_waitFullCoin = null;
           }
         }
       }, 500);
@@ -3362,7 +3238,7 @@ const notifyMgr = (() => {
                   if (count === 3) {
                     isHuntTreasure = true;
                     config_tool.findTreasure = new Date().$formatDate();
-                    $LS.set(LSConfig, config_tool);
+                    $util.LS.set(LSConfig, config_tool);
                     console.log(`寻宝完毕`);
                   } else {
                     console.log(`寻宝第 ${count+1} 次`);
@@ -3419,10 +3295,10 @@ const notifyMgr = (() => {
               setTimeout(() => { eles[i].click(); }, 500 * i)
             }
           } else if ($H2P('p.player-box-stat4', false).filter(ele => ele.style.visibility == 'visible').length == 6) {
-            $INVL.clear(INVL_autoGetFB);
+            clearInterval(INVL_autoGetFB);
             isHuntTreasure = true;
             config_tool.findTreasure = new Date().$formatDate();
-            $LS.set(LSConfig, config_tool);
+            $util.LS.set(LSConfig, config_tool);
           }
         }, 5000);
       }
@@ -3450,7 +3326,7 @@ const notifyMgr = (() => {
           } else {
             if ($H2P('div.Title-followBtnBox.is-followed')) {
               if ($H2P(elePath)) {
-                $INVL.clear(INVL_checkSignInIconReady);
+                clearInterval(INVL_checkSignInIconReady);
                 console.log('启动完毕 : 签到 : 已关注');
                 $H2P(elePath).click();
                 setTimeout(() => {
@@ -3460,14 +3336,14 @@ const notifyMgr = (() => {
               }
             }
             else if (new Date().getTime() / 1000 - start > 100) {
-              $INVL.clear(INVL_checkSignInIconReady);
+              clearInterval(INVL_checkSignInIconReady);
               console.log('启动完毕 : 签到 : 未关注');
             }
           }
         }
       } else if (isBilibiliLive) {
         if ($H2P(elePath)) {
-          $INVL.clear(INVL_checkSignInIconReady);
+          clearInterval(INVL_checkSignInIconReady);
           console.log('启动完毕 : 签到');
           $H2P(elePath).click();
         }
@@ -3493,7 +3369,7 @@ const notifyMgr = (() => {
         if (res && 'error' in res && res.error === 0) {
           console.log('成功赠送主播 : '+ roomId + ' 一个荧光棒');
           config_info.anchorFanRooms[roomId].anchorUp += 1;
-          $LS.set(LSInfo, config_info);
+          $util.LS.set(LSInfo, config_info);
         } else {
           console.log('赠送' + roomId + '失败 : ' + res.msg);
         }
@@ -3507,11 +3383,11 @@ const notifyMgr = (() => {
           let roomId = roomIds[i];
           if (config_info.anchorFanRooms[roomId].anchorUp === 0) { setTimeout(() => { donateYGB(roomId); }, (i+1) * 2000); }
         }
-        $INVL.clear(INVL_anchorUp);
+        clearInterval(INVL_anchorUp);
         console.log('启动完毕 : 赠送荧光棒');
       } else {
         console.log('今日已赠送荧光棒');
-        $INVL.clear(INVL_anchorUp);
+        clearInterval(INVL_anchorUp);
       }
     }, 1000);
   }
@@ -3530,7 +3406,7 @@ const notifyMgr = (() => {
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ //
 
   const LSConfig = 'h2p-DY-config-tool';
-  let config_tool = $LS.init(LSConfig, {
+  let config_tool = $util.LS.init(LSConfig, {
     pausePlay  : false,
     hideSound  : false,
     hideBar    : false,
@@ -3686,7 +3562,7 @@ const notifyMgr = (() => {
 
     let setINVL_wait_div_DYScript = setInterval(() => {
       if ($H2P('div#div-DYScript')) {
-        $INVL.clear(setINVL_wait_div_DYScript);
+        clearInterval(setINVL_wait_div_DYScript);
         $H2P('div#div-DYScript').appendChild(div);
         setTimeout(resolve, 250);
       }
@@ -3747,7 +3623,7 @@ const notifyMgr = (() => {
         config_tool.pausePlay = !config_tool.pausePlay;
         auto_pausePlay();
       }
-      $LS.set(LSConfig, config_tool);
+      $util.LS.set(LSConfig, config_tool);
     }, false);
   })
   .then(() => {
@@ -3764,4 +3640,4 @@ const notifyMgr = (() => {
     if (config_tool.pausePlay) { $H2P('button#h2p-btn-config-pausePlay').classList.add('h2p-bg-open'); }
   })
   .catch(error => { console.log(error); })
-})();
+})($util, $notifyMgr);
