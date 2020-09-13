@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        H2P: utils
 // @namespace   http://tampermonkey.net/
-// @version     0.1.0
+// @version     0.1.1
 // @description 针对 Date、localStorage 的操作
 // @author      H2P
 // @compatible  chrome
@@ -63,7 +63,6 @@
       })();
   
       this.HMS = (time = 0) => {
-        time = this.timeMS(time);
         let h = Number.parseInt(time / 3600000);
         let m = Number.parseInt(time % 3600000 / 60000);
         let s = Number.parseInt(time % 3600000 % 60000 / 1000);

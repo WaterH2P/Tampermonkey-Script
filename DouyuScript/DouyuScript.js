@@ -1,12 +1,12 @@
 // ==UserScript==
 // @name        H2P: 斗鱼虎牙B站小工具
 // @namespace   http://tampermonkey.net/
-// @version     2.2.10
+// @version     2.2.13
 // @icon        http://www.douyutv.com/favicon.ico
 // @description 黑暗模式 / 清爽模式：斗鱼虎牙 B 站 ________ <斗鱼>：抽奖、抄袭、循环弹幕，关键词回复 ____ 批量取关、直播时长、真实人数 ____ 暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、领取鱼塘（自动寻宝）、签到、自动维持亲密度 ________ <虎牙>：抄袭、循环弹幕 ____ 暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、领取宝箱 ________ <B 站>：暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、签到、领取舰长辣条
 // @author      H2P
 // @compatible  chrome
-// @require     https://greasyfork.org/scripts/411278-h2p-utils/code/H2P:%20utils.js?version=847425
+// @require     https://greasyfork.org/scripts/411278-h2p-utils/code/H2P:%20utils.js?version=847435
 // @require     https://greasyfork.org/scripts/411280-h2p-notify-util/code/H2P:%20notify%20util.js?version=847422
 // @match       *://*.douyu.com/0*
 // @match       *://*.douyu.com/1*
@@ -27,7 +27,7 @@
 // @match       *://*.bilibili.com/ranking?*
 // @match       *://live.bilibili.com/*
 // @match       *://*.huya.com/*
-// @note        2020.09.12-V2.2.10      修复清爽模式会隐藏二级目录下的预言问题
+// @note        2020.09.12-V2.2.13      优化移动预言位置的操作
 // ==/UserScript==
 
 (($util, $notifyMgr) => {
@@ -1202,6 +1202,22 @@
     }
   }
 
+  (() => {
+    // 转移预言的位置
+    const start = new Date().$times();
+    let INVL_wait_div_quiz = setInterval(() => {
+      if ($H2P('div.ToolbarActivityArea > div > div') && $H2P('div.ActiviesExpandPanel div.ActivityItem[data-flag="anchor_quiz"]')) {
+        clearInterval(INVL_wait_div_quiz);
+        INVL_wait_div_quiz = null;
+        $H2P('div.ToolbarActivityArea > div > div').appendChild($H2P('div.ActiviesExpandPanel div.ActivityItem[data-flag="anchor_quiz"]'));
+      }
+      // 最多等待 5min
+      else if ((new Date().$times() - start) > 2 * 60) {
+        clearInterval(INVL_wait_div_quiz);
+        INVL_wait_div_quiz = null;
+      }
+    }, 1000);
+  })()
   function clearGift () {
     console.log(`${config_clear.isClearGift ? '启动' : '关闭'} : 清爽礼物栏`);
     if (config_clear.isClearGift) {
@@ -1233,18 +1249,6 @@
           .ActivityItem[data-flag=room_level],
           .GiftItem-leftConnerMark { display: none!important; }
         `;
-        // 转移预言的位置
-        const start = new Date().$times();
-        let INVL_wait_div_quiz = setInterval(() => {
-          if ($H2P('div.ToolbarActivityArea > div > div') && $H2P('div.ActiviesExpandPanel div.ActivityItem[data-flag="anchor_quiz"]')) {
-            clearInterval(INVL_wait_div_quiz);
-            INVL_wait_div_quiz = null;
-            $H2P('div.ToolbarActivityArea > div > div').appendChild($H2P('div.ActiviesExpandPanel div.ActivityItem[data-flag="anchor_quiz"]'));
-          } else if ((new Date().$times() - start) > 5 * 60) { // 最多等待 5min
-            clearInterval(INVL_wait_div_quiz);
-            INVL_wait_div_quiz = null;
-          }
-        }, 500);
       } else if (isBilibili) {
         if (isBilibiliLive) {
           // 开通大航海、心愿、礼物图
@@ -3232,6 +3236,10 @@
               if (!isNaN(count) && !isNaN(fishFood)) {
                 if (fishFood < 60) {
                   isHuntTreasure = true;
+                  $notifyMgr.createNotify({
+                    msg: `鱼粮不足: ${fishFood}，本网页取消寻宝`,
+                    type: $notifyMgr.type.warn
+                  });
                   console.log(`鱼粮不足: ${fishFood}，本网页取消寻宝`);
                 }
                 else {
@@ -3239,6 +3247,10 @@
                     isHuntTreasure = true;
                     config_tool.findTreasure = new Date().$formatDate();
                     $util.LS.set(LSConfig, config_tool);
+                    $notifyMgr.createNotify({
+                      msg: `寻宝完毕`,
+                      type: $notifyMgr.type.success
+                    });
                     console.log(`寻宝完毕`);
                   } else {
                     console.log(`寻宝第 ${count+1} 次`);
