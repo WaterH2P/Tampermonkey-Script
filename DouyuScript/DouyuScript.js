@@ -1141,10 +1141,11 @@
           `;
         }
       } else if (isHuya) {
-        // 房间导航、关注人数
+        // 房间导航、关注人数、房间活动
         eleStyle.innerHTML += `
           .main-room .box-crumb, .room-hd .host-channel { display: none!important; }
           .room-hd .host-control .subscribe-entrance { display: none!important; }
+          .room-business-game { display: none!important; }
         `;
         // 守护、认证
         eleStyle.innerHTML += `
