@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        H2P: 斗鱼虎牙B站小工具
 // @namespace   http://tampermonkey.net/
-// @version     2.2.13
+// @version     2.2.14
 // @icon        http://www.douyutv.com/favicon.ico
 // @description 黑暗模式 / 清爽模式：斗鱼虎牙 B 站 ________ <斗鱼>：抽奖、抄袭、循环弹幕，关键词回复 ____ 批量取关、直播时长、真实人数 ____ 暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、领取鱼塘（自动寻宝）、签到、自动维持亲密度 ________ <虎牙>：抄袭、循环弹幕 ____ 暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、领取宝箱 ________ <B 站>：暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、签到、领取舰长辣条
 // @author      H2P
@@ -27,7 +27,7 @@
 // @match       *://*.bilibili.com/ranking?*
 // @match       *://live.bilibili.com/*
 // @match       *://*.huya.com/*
-// @note        2020.09.12-V2.2.13      优化移动预言位置的操作
+// @note        2020.12.05-V2.2.14      修复b站播放视频选择框无法显示的问题，b站动态黑暗模式优化
 // ==/UserScript==
 
 (($util, $notifyMgr) => {
@@ -458,8 +458,8 @@
           `;
           // 创作团队
           eleStyle.innerHTML += `
-            .members-info__header[data-v-f843d968], .members-info .up-card .avatar[data-v-f843d968] { background-color: ${black.bg.light}!important; }
-            .members-info__header .title[data-v-f843d968] { color: ${black.font.deep}; }
+            .members-info__header, .members-info .up-card .avatar[data-v-f843d968], .rec-footer { background-color: ${black.bg.light}!important; }
+            .members-info__header .title { color: ${black.font.deep}; }
           `;
           // 返回顶端
           eleStyle.innerHTML += `
@@ -511,12 +511,11 @@
             .tab-bar[data-v-58304b2a], .img-content[data-v-2ef3df58] { background-color: ${black.bg.light}; color: ${black.font.deep}; }
             .card[data-v-62336402], .video-container[data-v-3022fc8b],
             .article-container[data-v-3d352df6] { background-color: ${black.bg.light}; border-color: ${black.bg.light}!important; }
-            .card .main-content .user-name a[data-v-62336402] { color: ${black.font.deep}; }
-            .content-full[data-v-77d7458b], .content-ellipsis[data-v-77d7458b] { color: ${black.font.light}; }
+            .card .main-content .user-name > a { color: ${black.font.deep}!important; }
+            .content > .content-full, .content > .content-ellipsis { color: ${black.font.light}!important; }
             .card-content .repost[data-v-0ff3934a] { background-color: ${black.bg.light}; }
             .article-container .text-area .title[data-v-3d352df6],
             .video-container .text-area .title[data-v-3022fc8b],
-            .card .main-content .user-name a[data-v-0636105e] { color: ${black.font.deep}; }
             .article-container:hover .text-area[data-v-3d352df6] { box-shadow: none; }
             .card .button-area .more-button[data-v-62336402] { color: ${black.font.deep}; }
             .card .more-panel[data-v-62336402],
@@ -1096,9 +1095,10 @@
           div.Title-roomInfo > div.Title-row:nth-child(3) { display: none!important; }
         `;
       } else if (isBilibili) {
-        // 头像框
+        // 头像框、右下角闪电
         eleStyle.innerHTML += `
-          .up-info .u-face .pendant { display: none!important; }
+          .up-info .u-face .pendant, .bili-avatar-pendent { display: none!important; }
+          .bili-avatar-icon { display: none!important; }
         `;
         if (isBilibiliVideo) {
           // 禁止转载
@@ -1469,7 +1469,8 @@
           // 广告
           eleStyle.innerHTML += `
             div#slide_ad,
-            div#right-bottom-banner { display: none!important; }
+            div#right-bottom-banner,
+            .ad-report.ad-floor { display: none!important; }
           `;
         } else if (isBilibiliLive) {
           // 视频 logo
@@ -1508,10 +1509,11 @@
             body.lite-room #chat-control-panel-vm { border-radius: 0 0 12px 12px!important; }
           `;
         } else if (isBilibiliAct) {
-          // 头像框、用户反馈论坛
+          // 头像框、用户反馈论坛、2233娘
           eleStyle.innerHTML += `
             .card .user-head .user-decorator,
-            .notice-panel { display: none!important; }
+            .notice-panel,
+            .card-decorator { display: none!important; }
           `;
         }
       } else if (isHuya) {
@@ -1634,6 +1636,13 @@
         a.link.van-popover__reference[href$="app.bilibili.com"],
         a.link.van-popover__reference[href$="app.bilibili.com/"] { display: none!important; }
       `;
+      if (isBilibiliVideo) {
+        eleStyle.innerHTML += `
+          .h2p-dropdown-menu input[type=checkbox] {
+            -webkit-appearance: auto!important;
+          }
+        `;
+      }
     }
     document.head.appendChild(eleStyle);
 
@@ -1674,7 +1683,7 @@
     if (isDouyu) {
     } else if (isBilibili) {
     } else if (isHuya) {
-      divDropDown.style = 'left: -147px;';
+      divDropDown.style += 'left: -147px;';
     }
     divDropDown.innerHTML += `
       <div id="h2p-div-clearMode-select" style="width: 100%;">
