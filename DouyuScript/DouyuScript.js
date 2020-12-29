@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        H2P: 斗鱼虎牙B站小工具
 // @namespace   http://tampermonkey.net/
-// @version     2.2.14
+// @version     2.2.15
 // @icon        http://www.douyutv.com/favicon.ico
 // @description 黑暗模式 / 清爽模式：斗鱼虎牙 B 站 ________ <斗鱼>：抽奖、抄袭、循环弹幕，关键词回复 ____ 批量取关、直播时长、真实人数 ____ 暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、领取鱼塘（自动寻宝）、签到、自动维持亲密度 ________ <虎牙>：抄袭、循环弹幕 ____ 暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、领取宝箱 ________ <B 站>：暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、签到、领取舰长辣条
 // @author      H2P
@@ -27,7 +27,7 @@
 // @match       *://*.bilibili.com/ranking?*
 // @match       *://live.bilibili.com/*
 // @match       *://*.huya.com/*
-// @note        2020.12.05-V2.2.14      修复b站播放视频选择框无法显示的问题，b站动态黑暗模式优化
+// @note        2020.12.16-V2.2.15      修复b站播放视频选择框无法显示的问题
 // ==/UserScript==
 
 (($util, $notifyMgr) => {
@@ -1639,7 +1639,7 @@
       if (isBilibiliVideo) {
         eleStyle.innerHTML += `
           .h2p-dropdown-menu input[type=checkbox] {
-            -webkit-appearance: auto!important;
+            -webkit-appearance: checkbox!important;
           }
         `;
       }
