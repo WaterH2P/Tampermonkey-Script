@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        H2P: 斗鱼虎牙B站小工具
 // @namespace   http://tampermonkey.net/
-// @version     2.2.15
+// @version     2.2.16
 // @icon        http://www.douyutv.com/favicon.ico
 // @description 黑暗模式 / 清爽模式：斗鱼虎牙 B 站 ________ <斗鱼>：抽奖、抄袭、循环弹幕，关键词回复 ____ 批量取关、直播时长、真实人数 ____ 暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、领取鱼塘（自动寻宝）、签到、自动维持亲密度 ________ <虎牙>：抄袭、循环弹幕 ____ 暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、领取宝箱 ________ <B 站>：暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、签到、领取舰长辣条
 // @author      H2P
@@ -27,7 +27,7 @@
 // @match       *://*.bilibili.com/ranking?*
 // @match       *://live.bilibili.com/*
 // @match       *://*.huya.com/*
-// @note        2020.12.16-V2.2.15      修复b站播放视频选择框无法显示的问题
+// @note        2021.01.09-V2.2.16      修复开关状态显示按钮可以点击的问题，修复斗鱼无法领取鱼丸的问题
 // ==/UserScript==
 
 (($util, $notifyMgr) => {
@@ -1226,11 +1226,11 @@
       let eleStyle = document.createElement('style');
       eleStyle.id = 'h2p-style-clear-gift';
       if (isDouyu) {
-        // 全民乐 PK、礼物、欢乐开黑、打弱鸡
+        // 全民乐 PK、礼物、欢乐开黑、打弱鸡、幸运寻宝、鱼丸夺宝
         eleStyle.innerHTML += `
           div.ToolbarActivityArea div.PlayerToolbar-Task, div.SuperFansBubble,
           div.ToolbarActivityArea div.BattleShipEnter, div.ToolbarActivityArea div.RomanticDateComponent,
-          .PlayFishBallEnter, .HappyPlayIcon { display: none!important; }
+          .PlayFishBallEnter, .HappyPlayIcon, .EggLudoActEntry, .FishballTreasure { display: none!important; }
           .PlayerToolbar-signCont { visibility: hidden; }
         `;
         // 鱼购精选、打赏君、超级擂主、充值送鱼丸、许愿池、环游星空、弱鸡总动员
@@ -2474,6 +2474,7 @@
       #h2p-div-bar #h2p-btn-bar-send,
       #h2p-div-bar #h2p-btn-bar-sendAll {
         line-height     : 18px;
+        font-size       : 15px;
         width           : 95%;
         padding         : 4px 0;
         border          : none;
@@ -3234,8 +3235,8 @@
           })
           .then(() => {
             // 打开领取鱼丸界面
-            if ($H2P('div.FishpondTreasure-icon') && !$H2P('div.FTP')) {
-              $H2P('div.FishpondTreasure-icon').click();
+            if ($H2P('div.FishpondEntrance-icon') && !$H2P('div.FTP')) {
+              $H2P('div.FishpondEntrance-icon').click();
               $H2P('div.FTP-handle-btnBottom', false).filter(ele => ele.textContent === '寻宝')[0].click();
             }
           })
@@ -3277,7 +3278,7 @@
           })
         } else {
           // 观看鱼丸元素存在并且有未领取的鱼丸
-          if ($H2P('div.FishpondTreasure-num.is-entrance') && Number($H2P('div.FishpondTreasure-num.is-entrance').textContent) > 0) {
+          if ($H2P('div.FishpondEntrance-num.is-entrance') && Number($H2P('div.FishpondEntrance-num.is-entrance').textContent) > 0) {
             for (let i = 0; i < 3; i++) {
               setTimeout(() => {
                 new Promise((resolve, reject) => {
@@ -3289,8 +3290,8 @@
                 })
                 .then(() => {
                   // 打开领取鱼丸界面
-                  if ($H2P('div.FishpondTreasure-icon') && !$H2P('div.FTP')) {
-                    $H2P('div.FishpondTreasure-icon').click();
+                  if ($H2P('div.FishpondEntrance-icon') && !$H2P('div.FTP')) {
+                    $H2P('div.FishpondEntrance-icon').click();
                   }
                   // 每日活跃、每周活跃
                   $H2P('span.FTP-btn', false)[i].click();
@@ -3510,10 +3511,10 @@
     div.innerHTML = `
       <div class="h2p-flex-main-start h2p-item-100p">
         <div class="h2p-flex-main-start h2p-item-50p">
-          <button class="h2p-btn h2p-w-96p h2p-bg-close">关闭状态</button>
+          <button class="h2p-btn h2p-w-96p h2p-bg-close" style="color: black;" disabled>关闭状态</button>
         </div>
         <div class="h2p-flex-main-end h2p-item-50p">
-          <button class="h2p-btn h2p-w-96p h2p-bg-open">开启状态</button>
+          <button class="h2p-btn h2p-w-96p h2p-bg-open" style="color: black;" disabled>开启状态</button>
         </div>
       </div>
 
