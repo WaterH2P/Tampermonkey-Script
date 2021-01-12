@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        H2P: 斗鱼虎牙B站小工具
 // @namespace   http://tampermonkey.net/
-// @version     2.2.16
+// @version     2.2.17
 // @icon        http://www.douyutv.com/favicon.ico
 // @description 黑暗模式 / 清爽模式：斗鱼虎牙 B 站 ________ <斗鱼>：抽奖、抄袭、循环弹幕，关键词回复 ____ 批量取关、直播时长、真实人数 ____ 暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、领取鱼塘（自动寻宝）、签到、自动维持亲密度 ________ <虎牙>：抄袭、循环弹幕 ____ 暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、领取宝箱 ________ <B 站>：暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、签到、领取舰长辣条
 // @author      H2P
@@ -27,7 +27,7 @@
 // @match       *://*.bilibili.com/ranking?*
 // @match       *://live.bilibili.com/*
 // @match       *://*.huya.com/*
-// @note        2021.01.09-V2.2.16      修复开关状态显示按钮可以点击的问题，修复斗鱼无法领取鱼丸的问题
+// @note        2021.01.12-V2.2.17      修复b站直播按钮显示问题
 // ==/UserScript==
 
 (($util, $notifyMgr) => {
@@ -914,7 +914,7 @@
             $H2P('ul.nav-link-ul').appendChild(div);
           }
         } else if (isBilibiliLive) {
-          let ele = $H2P('ul.nav-link-ul > li:nth-child(8)') || $H2P('div.dp-table-cell.v-middle > a[data-v-3c413834]:nth-child(10)');
+          let ele = $H2P('ul.nav-link-ul > li:nth-child(8)') || $H2P('div.dp-table-cell.v-middle > a:nth-child(10)');
           if (ele) {
             ele.parentNode.appendChild(div);
           }
@@ -1478,9 +1478,7 @@
             .bilibili-live-player-video-logo { display: none!important; }
           `;
           // 背景
-          eleStyle.innerHTML += `
-            div.room-bg[data-v-0654e230] { background: none!important; }
-          `;
+          eleStyle.innerHTML += ``;
           // 礼物栏下滚动条目、他的动态、底部公司信息
           eleStyle.innerHTML += `
             div.left-container > div.flip-view { display: none!important; }
@@ -1493,10 +1491,11 @@
           `;
           // 直播间背景图
           eleStyle.innerHTML += `
-            section.container-wrapper { height: auto!important; }
+            section.container-wrapper,
+            .t-space-container.plat-section-space { height: auto!important; }
             .t-background-image { display: none!important; }
             .t-space-container { padding-top: 10px!important; }
-            .handle-bar { height: 0!important; margin-bottom: 10px!important; }
+            .handle-bar { margin-bottom: 10px!important; }
           `;
           // 分享、b 站信息
           eleStyle.innerHTML += `
@@ -1739,7 +1738,7 @@
             $H2P('ul.nav-link-ul').appendChild(div);
           }
         } else if (isBilibiliLive) {
-          let ele = $H2P('ul.nav-link-ul > li:nth-child(8)') || $H2P('div.dp-table-cell.v-middle > a[data-v-3c413834]:nth-child(10)');
+          let ele = $H2P('ul.nav-link-ul > li:nth-child(8)') || $H2P('div.dp-table-cell.v-middle > a:nth-child(10)');
           if (ele) {
             ele.parentNode.appendChild(div);
           }
@@ -2320,7 +2319,7 @@
     } else if (isBilibiliLive) {
       div_sign.id = 'h2p-div-sign';
       div_sign.classList = 'icon-item icon-font';
-      div_sign.style = 'margin-top: -10px; display: inline-block;';
+      div_sign.style = 'margin: -10px 5px 0 5px; display: inline-block;';
       div_sign.title = 'B 站脚本';
       div_sign.innerHTML = `<span id="h2p-span-DYScript">${config_script.icon}</span>`;
     }
@@ -2350,12 +2349,12 @@
           $H2P('div.room-chat-tools').appendChild(div_sign);
           resolve();
         }, 2000);
-      } else if (isBilibiliLive && $H2P('div.chat-history-panel') && $H2P('div#iconConfigRight')) {
+      } else if (isBilibiliLive && $H2P('div.chat-history-panel') && $H2P('div.icon-left-part')) {
         clearInterval(check_mountPoint_barPanel);
         check_mountPoint_barPanel = null;
         setTimeout(() => {
           $H2P('div.chat-history-panel').appendChild(div_DYScript);
-          $H2P('div#iconConfigRight').appendChild(div_sign);
+          $H2P('div.icon-left-part').appendChild(div_sign);
           resolve();
         }, 2000);
       } else if (!isDouyu && !isHuya && !isBilibili) {
