@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        H2P: 斗鱼虎牙B站小工具
 // @namespace   http://tampermonkey.net/
-// @version     2.2.17
+// @version     2.2.18
 // @icon        http://www.douyutv.com/favicon.ico
 // @description 黑暗模式 / 清爽模式：斗鱼虎牙 B 站 ________ <斗鱼>：抽奖、抄袭、循环弹幕，关键词回复 ____ 批量取关、直播时长、真实人数 ____ 暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、领取鱼塘（自动寻宝）、签到、自动维持亲密度 ________ <虎牙>：抄袭、循环弹幕 ____ 暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、领取宝箱 ________ <B 站>：暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、签到、领取舰长辣条
 // @author      H2P
@@ -27,7 +27,7 @@
 // @match       *://*.bilibili.com/ranking?*
 // @match       *://live.bilibili.com/*
 // @match       *://*.huya.com/*
-// @note        2021.01.12-V2.2.17      修复b站直播按钮显示问题
+// @note        2021.01.28-V2.2.18      修复斗鱼🐯不显示的问题
 // ==/UserScript==
 
 (($util, $notifyMgr) => {
@@ -2131,7 +2131,7 @@
       `;
 
       let setINVL_wait_div_announce = setInterval(() => {
-        if ($H2P('div.layout-Player-asideMainTop') && $H2P('div.BarrageSuperLink') && $H2P('div.ChatToolBar')) {
+        if ($H2P('div.layout-Player-asideMainTop') && $H2P('div.ShieldTool-content') && $H2P('div.ChatToolBar')) {
           clearInterval(setINVL_wait_div_announce);
           setINVL_wait_div_announce = null;
           setTimeout(() => {
@@ -2333,7 +2333,7 @@
     // 检查弹幕面板挂载点（斗鱼弹幕显示区域）是否加载完成
     // 检查弹幕图标挂载点（斗鱼弹幕输入框）是否加载完成
     let check_mountPoint_barPanel = setInterval(() => {
-      if (isDouyu && $H2P('div.layout-Player-asideMainTop') && $H2P('div.BarrageSuperLink') && $H2P('div.ChatToolBar')) {
+      if (isDouyu && $H2P('div.layout-Player-asideMainTop') && $H2P('div.ShieldTool-content') && $H2P('div.ChatToolBar')) {
         clearInterval(check_mountPoint_barPanel);
         check_mountPoint_barPanel = null;
         setTimeout(() => {
