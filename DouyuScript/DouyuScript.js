@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        H2P: 斗鱼虎牙B站小工具
 // @namespace   http://tampermonkey.net/
-// @version     2.2.18
+// @version     2.2.19
 // @icon        http://www.douyutv.com/favicon.ico
 // @description 黑暗模式 / 清爽模式：斗鱼虎牙 B 站 ________ <斗鱼>：抽奖、抄袭、循环弹幕，关键词回复 ____ 批量取关、直播时长、真实人数 ____ 暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、领取鱼塘（自动寻宝）、签到、自动维持亲密度 ________ <虎牙>：抄袭、循环弹幕 ____ 暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、领取宝箱 ________ <B 站>：暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、签到、领取舰长辣条
 // @author      H2P
@@ -27,7 +27,7 @@
 // @match       *://*.bilibili.com/ranking?*
 // @match       *://live.bilibili.com/*
 // @match       *://*.huya.com/*
-// @note        2021.01.28-V2.2.18      修复斗鱼🐯不显示的问题
+// @note        2021.02.02-V2.2.19      暂停脚本打开鱼塘
 // ==/UserScript==
 
 (($util, $notifyMgr) => {
@@ -3222,6 +3222,7 @@
     if (INVL_autoGetFB) { return; }
     let isHuntTreasure = config_tool.findTreasure === new Date().$formatDate();
     if (isDouyu) {
+      return
       INVL_autoGetFB = setInterval(() => {
         if (!isHuntTreasure) {
           console.log('开始寻宝');
@@ -3563,7 +3564,7 @@
         <div class="h2p-flex-main-start h2p-item-50p">
           <div class="h2p-flex-main-start h2p-item-50p">
             <!-- 是否自动领取鱼塘 -->
-            <button id="h2p-btn-config-getFB" class="h2p-btn h2p-w-96p h2p-bg-close">领取${isDouyu ? '鱼塘' : isHuya ? '宝箱' : '辣条'}</button>
+            <button id="h2p-btn-config-getFB" class="h2p-btn h2p-w-96p h2p-bg-close" style="display: ${isDouyu ? 'none' : ''}">领取${isDouyu ? '鱼塘' : isHuya ? '宝箱' : '辣条'}</button>
           </div>
           <div class="h2p-flex-main-start h2p-item-50p" style="display: ${isHuya ? 'none' : ''}">
             <!-- 是否自动签到 -->
