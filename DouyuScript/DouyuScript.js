@@ -1,9 +1,9 @@
 // ==UserScript==
-// @name        H2P: 斗鱼虎牙B站小工具
+// @name        H2P: 斗鱼小工具
 // @namespace   http://tampermonkey.net/
-// @version     2.2.19
+// @version     2.2.20
 // @icon        http://www.douyutv.com/favicon.ico
-// @description 黑暗模式 / 清爽模式：斗鱼虎牙 B 站 ________ <斗鱼>：抽奖、抄袭、循环弹幕，关键词回复 ____ 批量取关、直播时长、真实人数 ____ 暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、领取鱼塘（自动寻宝）、签到、自动维持亲密度 ________ <虎牙>：抄袭、循环弹幕 ____ 暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、领取宝箱 ________ <B 站>：暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、签到、领取舰长辣条
+// @description 黑暗模式 / 清爽模式：斗鱼 ________ <斗鱼>：抽奖、抄袭、循环弹幕，关键词回复 ____ 批量取关____ 暂停播放、静音、关闭滚动弹幕、默认画质、宽屏模式、签到、自动维持亲密度
 // @author      H2P
 // @compatible  chrome
 // @require     https://greasyfork.org/scripts/411278-h2p-utils/code/H2P:%20utils.js?version=847435
@@ -27,7 +27,7 @@
 // @match       *://*.bilibili.com/ranking?*
 // @match       *://live.bilibili.com/*
 // @match       *://*.huya.com/*
-// @note        2021.02.02-V2.2.19      暂停脚本打开鱼塘
+// @note        2021.02.02-V2.2.20      弹幕栏不显示直播时长，不获取现在人数
 // ==/UserScript==
 
 (($util, $notifyMgr) => {
@@ -1957,7 +1957,7 @@
     showTs: {},
   });
 
-  if (isDouyu) {
+  if (false) {
     // 获取在线人数
     let urlId = isDouyuTopic ? location.href.split('=').pop() : roomInfo.id;
     fetch(`https://bojianger.com/data/api/common/search.do?keyword=${urlId}`)
@@ -2092,38 +2092,38 @@
       divBar.id = 'h2p-div-clear-anchorHot';
       divBar.classList = 'h2p-flex-main-start h2p-h-100p';
       divBar.style = 'padding: 3px 10px 0; margin: 0;';
-      divBar.innerHTML = `
-        <div class="Title-blockInline h2p-item-33p">
-          <a id="a-anchorHot" class="Title-anchorHot" title="直播热度">
-            <i class="Title-anchorHotIcon" style="margin-top: -4px">
-              <svg style="width: 16px; height: 16px;">
-                <use xlink:href="#hot_84f8212"></use>
-              </svg>
-            </i>
-            <div class="Title-anchorText" style="margin-left: 2px;">0</div>
-          </a>
-        </div>
-        <div class="Title-blockInline h2p-item-33p">
-          <div id="div-online" title="真实人数" style="margin-top: -7px">
-            <div class="Title-anchorFriendWrapper">
-              <div class="Title-row-span">
-                <span class="Title-row-icon">
-                  <svg style="width:15px; height:15px">
-                    <use xlink:href="#friend_b0b6380"></use>
-                  </svg>
-                </span>
-                <i class="Title-row-text" style="margin-left: 2px;">0</i>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="Title-blockInline h2p-item-33p">
-          <a id="a-anchorShowT" class="Title-anchorHot" title="直播时长">
-            <div class="AnchorFriendCard-avatar is-live" style="height: 19px; border: none; margin: 2px 5px 0 -4px;"></div>
-            <div class="Title-anchorText" style="margin-left: 2px;">0</div>
-          </a>
-        </div>
-      `;
+      // divBar.innerHTML = `
+      //   <div class="Title-blockInline h2p-item-33p">
+      //     <a id="a-anchorHot" class="Title-anchorHot" title="直播热度">
+      //       <i class="Title-anchorHotIcon" style="margin-top: -4px">
+      //         <svg style="width: 16px; height: 16px;">
+      //           <use xlink:href="#hot_84f8212"></use>
+      //         </svg>
+      //       </i>
+      //       <div class="Title-anchorText" style="margin-left: 2px;">0</div>
+      //     </a>
+      //   </div>
+      //   <div class="Title-blockInline h2p-item-33p">
+      //     <div id="div-online" title="真实人数" style="margin-top: -7px">
+      //       <div class="Title-anchorFriendWrapper">
+      //         <div class="Title-row-span">
+      //           <span class="Title-row-icon">
+      //             <svg style="width:15px; height:15px">
+      //               <use xlink:href="#friend_b0b6380"></use>
+      //             </svg>
+      //           </span>
+      //           <i class="Title-row-text" style="margin-left: 2px;">0</i>
+      //         </div>
+      //       </div>
+      //     </div>
+      //   </div>
+      //   <div class="Title-blockInline h2p-item-33p">
+      //     <a id="a-anchorShowT" class="Title-anchorHot" title="直播时长">
+      //       <div class="AnchorFriendCard-avatar is-live" style="height: 19px; border: none; margin: 2px 5px 0 -4px;"></div>
+      //       <div class="Title-anchorText" style="margin-left: 2px;">0</div>
+      //     </a>
+      //   </div>
+      // `;
       let eleStyle = document.createElement('style');
       eleStyle.innerHTML += `
         .layout-Player-rank { top: 70px; }
